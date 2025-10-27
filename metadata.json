@@ -1,0 +1,7 @@
+{
+  "name": "AI Auto Selfie",
+  "description": "An app for salespeople to take a selfie with a customer and their new vehicle, then use AI to add celebratory text and graphics for easy social media sharing.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
