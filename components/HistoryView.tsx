@@ -171,7 +171,7 @@ interface GalleryGridItemProps {
   onSelect: (image: GalleryImage) => void;
 }
 
-const GalleryGridItem: React.FC<GalleryGridItemProps> = ({ image, onSelect }) => {
+const GalleryGridItem: React.FC<GalleryGridItemProps> = React.memo(({ image, onSelect }) => {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const today = new Date();
@@ -227,6 +227,8 @@ const GalleryGridItem: React.FC<GalleryGridItemProps> = ({ image, onSelect }) =>
       </div>
     </div>
   );
-};
+});
+
+GalleryGridItem.displayName = 'GalleryGridItem';
 
 export default GalleryView;

@@ -18,7 +18,7 @@ interface StartViewProps {
   onViewGallery: () => void;
 }
 
-const StartView: React.FC<StartViewProps> = ({ onStart, onViewGallery }) => (
+const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery }) => (
   <div className="relative flex h-full w-full items-center justify-center overflow-hidden px-6 py-16">
     {/* Premium animated background gradients */}
     <div
@@ -110,7 +110,9 @@ const StartView: React.FC<StartViewProps> = ({ onStart, onViewGallery }) => (
       </div>
     </div>
   </div>
-);
+));
+
+StartView.displayName = 'StartView';
 
 const AppContent: React.FC = () => {
   const {
