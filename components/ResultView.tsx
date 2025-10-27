@@ -4,6 +4,7 @@ import Icon from './common/Icon';
 import BeforeAfterSlider from './BeforeAfterSlider';
 import { useToast } from './common/ToastContainer';
 import ExportDialog from './ExportDialog';
+import CaptionEditor from './CaptionEditor';
 import { useAppContext } from '../context/AppContext';
 import { shareViaWebShare } from '../services/exportService';
 import { useAnalytics } from '../services/analyticsService';
@@ -17,11 +18,17 @@ interface ResultViewProps {
 
 const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStartOver, onViewGallery }) => {
   const { showToast } = useToast();
-  const { autoCaption } = useAppContext();
+  const { autoCaption, updateCaption } = useAppContext();
   const { trackFeature } = useAnalytics();
   const [showComparison, setShowComparison] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [isQuickSharing, setIsQuickSharing] = useState(false);
+
+  const handleCaptionSave = useCallback((newCaption: string) => {
+    updateCaption(newCaption);
+    showToast('Caption updated!', 'success');
+    trackFeature('edit_caption', { location: 'result_view' });
+  }, [updateCaption, showToast, trackFeature]);
 
   const handleSave = useCallback(() => {
     try {
@@ -77,9 +84,14 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
       
       {/* Auto-caption bubble */}
       {autoCaption && (
-        <div className="absolute bottom-24 left-4 right-4 sm:left-auto sm:right-4 max-w-2xl p-3 rounded-xl bg-neutral-900/80 border border-neutral-700 shadow-lg backdrop-blur-md">
-          <p className="text-sm text-white/90 leading-snug line-clamp-3">{autoCaption}</p>
-          <div className="mt-2 flex gap-2">
+        <div className="absolute bottom-24 left-4 right-4 sm:left-auto sm:right-4 max-w-2xl p-4 rounded-xl bg-neutral-900/80 border border-neutral-700 shadow-lg backdrop-blur-md">
+          <CaptionEditor
+            caption={autoCaption}
+            onSave={handleCaptionSave}
+            compactMode={true}
+            className="mb-2"
+          />
+          <div className="flex gap-2">
             <Button
               onClick={async () => {
                 try {

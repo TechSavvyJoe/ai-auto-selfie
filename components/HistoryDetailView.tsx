@@ -1,10 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import Button from './common/Button';
 import Icon from './common/Icon';
+import CaptionEditor from './CaptionEditor';
 import { GalleryImage } from '../types';
 import * as storage from '../services/storageService';
 import { uploadImage, isUploadConfigured } from '../services/uploadService';
 import { useAnalytics } from '../services/analyticsService';
+import { useToast } from './common/ToastContainer';
 
 interface GalleryDetailViewProps {
   image: GalleryImage;
@@ -16,8 +18,17 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
   const [showMetadata, setShowMetadata] = useState(true);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentCaption, setCurrentCaption] = useState(image.autoCaption || '');
   const uploadAvailable = isUploadConfigured();
   const { trackFeature } = useAnalytics();
+  const { showToast } = useToast();
+
+  const handleCaptionSave = useCallback((newCaption: string) => {
+    setCurrentCaption(newCaption);
+    storage.updateImageMetadata(image.id, { autoCaption: newCaption });
+    showToast('Caption updated!', 'success');
+    trackFeature('edit_caption', { location: 'history_detail' });
+  }, [image.id, showToast, trackFeature]);
 
   const handleSave = useCallback(() => {
     const link = document.createElement('a');
@@ -168,18 +179,23 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
             </div>
           )}
 
-          {image.autoCaption && (
+          {currentCaption && (
             <div>
               <h3 className="text-xs font-semibold text-white/60 uppercase mb-2">Auto-Caption</h3>
-              <p className="text-sm text-white/80 break-words mb-2">{image.autoCaption}</p>
+              <CaptionEditor
+                caption={currentCaption}
+                onSave={handleCaptionSave}
+                className="mb-3"
+              />
               <div className="flex gap-2">
                 <Button
                   onClick={async () => {
                     try {
-                      await navigator.clipboard.writeText(image.autoCaption || '');
+                      await navigator.clipboard.writeText(currentCaption);
                       trackFeature('copy_caption', { location: 'history_detail' });
+                      showToast('Caption copied!', 'success');
                     } catch (e) {
-                      // ignore
+                      showToast('Copy failed', 'error');
                     }
                   }}
                   variant="secondary"
@@ -197,10 +213,11 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
                         const { url } = await uploadImage(image.imageDataUrl, { fileName: `ai-auto-selfie-${image.id}.jpg` });
                         setUploadedUrl(url);
                         trackFeature('history_upload_share', { id: image.id });
+                        showToast('Image uploaded!', 'success');
                         // open share links by default
                         window.open(url, '_blank');
                       } catch (err) {
-                        // ignore
+                        showToast('Upload failed', 'error');
                       } finally {
                         setIsUploading(false);
                       }
@@ -221,7 +238,10 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
                       try {
                         await navigator.clipboard.writeText(uploadedUrl);
                         trackFeature('copy_uploaded_link', { location: 'history_detail' });
-                      } catch (e) {}
+                        showToast('Link copied!', 'success');
+                      } catch (e) {
+                        showToast('Copy failed', 'error');
+                      }
                     }}
                     variant="secondary"
                     size="sm"

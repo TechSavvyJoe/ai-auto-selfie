@@ -35,6 +35,9 @@ export interface AppContextType {
   enhanceImage: (options: EditOptions) => Promise<void>;
   resetToCamera: () => void;
 
+  // Caption management
+  updateCaption: (newCaption: string) => void;
+
   // Gallery management
   viewGallery: () => void;
   selectGalleryImage: (image: GalleryImage) => void;
@@ -233,6 +236,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setError(null);
   }, []);
 
+  const updateCaption = useCallback((newCaption: string) => {
+    setAutoCaption(newCaption);
+    
+    // Update the most recent gallery image with new caption
+    const currentGallery = storage.getHistory();
+    if (currentGallery.length > 0) {
+      const mostRecentImage = currentGallery[0];
+      storage.updateImageMetadata(mostRecentImage.id, { autoCaption: newCaption });
+      setGallery(storage.getHistory());
+    }
+  }, []);
+
   const value: AppContextType = {
     appState,
     originalImage,
@@ -251,6 +266,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     captureImage,
     enhanceImage,
     resetToCamera,
+    updateCaption,
     viewGallery,
     selectGalleryImage,
     deleteGalleryImage,
