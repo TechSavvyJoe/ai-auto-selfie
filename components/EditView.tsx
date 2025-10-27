@@ -2,12 +2,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Button from './common/Button';
 import Icon from './common/Icon';
 // FIX: Import LogoData to fix type error.
-import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, EnhancementLevel } from '../types';
+import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS } from '../types';
 import { fileToBase64 } from '../utils/imageUtils';
 import { generateInspirationalMessage } from '../services/geminiService';
 import * as storage from '../services/storageService';
 import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
+import Slider from './common/Slider';
 
 interface EditViewProps {
   imageSrc: string;
@@ -34,6 +35,9 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>('professional');
   const [enhancementLevel, setEnhancementLevel] = useState<EnhancementLevel>('moderate');
+  const [adjustments, setAdjustments] = useState<ImageAdjustments>(DEFAULT_IMAGE_ADJUSTMENTS);
+  const [compareMode, setCompareMode] = useState(false);
+  const [expandAdjustments, setExpandAdjustments] = useState(false);
 
   useEffect(() => {
     const savedLogo = storage.getLogo();
@@ -71,6 +75,16 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
     }
   }
 
+  const handleAdjustmentChange = useCallback((key: keyof ImageAdjustments, value: number) => {
+    setAdjustments(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleResetAdjustments = useCallback(() => {
+    setAdjustments(DEFAULT_IMAGE_ADJUSTMENTS);
+  }, []);
+
+  const isAdjusted = Object.values(adjustments).some(v => v !== 0);
+
   const handleEnhanceClick = useCallback(() => {
     onEnhance({
       theme,
@@ -82,8 +96,10 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       logoPosition,
       aiMode,
       enhancementLevel,
+      adjustments: isAdjusted ? adjustments : undefined,
+      compareMode: compareMode ? true : undefined,
     });
-  }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel]);
+  }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted]);
   
   const ControlGroup: React.FC<{title: string; children: React.ReactNode; className?: string}> = ({title, children, className}) => (
     <div className={`flex flex-col gap-3 p-4 bg-gray-800/50 rounded-xl shadow-md ${className}`}>
@@ -174,6 +190,103 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                     </div>
                 </div>
             </div>
+        </ControlGroup>
+
+        <ControlGroup title="Professional Adjustments">
+          <button
+            type="button"
+            onClick={() => setExpandAdjustments(!expandAdjustments)}
+            className="w-full flex items-center justify-between p-2 mb-2 hover:bg-gray-700/50 rounded-md transition-colors"
+          >
+            <span className="text-xs text-white/70">Exposure • Contrast • Temperature</span>
+            <Icon
+              type={expandAdjustments ? 'chevronUp' : 'chevronDown'}
+              className="w-4 h-4 text-white/50 transition-transform"
+              style={{ transform: expandAdjustments ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
+          </button>
+
+          {expandAdjustments && (
+            <div className="space-y-3 p-2 bg-gray-800/30 rounded-md">
+              <Slider
+                label="Exposure"
+                icon="☀️"
+                value={adjustments.exposure}
+                onChange={(value) => handleAdjustmentChange('exposure', value)}
+                onReset={() => handleAdjustmentChange('exposure', 0)}
+                min={-50}
+                max={50}
+                unit="%"
+              />
+              <Slider
+                label="Contrast"
+                icon="⚖️"
+                value={adjustments.contrast}
+                onChange={(value) => handleAdjustmentChange('contrast', value)}
+                onReset={() => handleAdjustmentChange('contrast', 0)}
+                min={-50}
+                max={50}
+                unit="%"
+              />
+              <Slider
+                label="Temperature"
+                icon="🔥"
+                value={adjustments.temperature}
+                onChange={(value) => handleAdjustmentChange('temperature', value)}
+                onReset={() => handleAdjustmentChange('temperature', 0)}
+                min={-50}
+                max={50}
+                unit="K"
+              />
+              <Slider
+                label="Saturation"
+                icon="🎨"
+                value={adjustments.saturation}
+                onChange={(value) => handleAdjustmentChange('saturation', value)}
+                onReset={() => handleAdjustmentChange('saturation', 0)}
+                min={-50}
+                max={50}
+                unit="%"
+              />
+              <Slider
+                label="Sharpen"
+                icon="🔍"
+                value={adjustments.sharpen}
+                onChange={(value) => handleAdjustmentChange('sharpen', value)}
+                onReset={() => handleAdjustmentChange('sharpen', 0)}
+                min={0}
+                max={10}
+              />
+              {isAdjusted && (
+                <button
+                  type="button"
+                  onClick={handleResetAdjustments}
+                  className="w-full mt-2 p-2 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  <Icon type="redo" className="w-4 h-4" />
+                  Reset All
+                </button>
+              )}
+            </div>
+          )}
+        </ControlGroup>
+
+        <ControlGroup title="Preview Options">
+          <button
+            type="button"
+            onClick={() => setCompareMode(!compareMode)}
+            className={`w-full p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-between ${
+              compareMode
+                ? 'bg-blue-600/20 border-blue-500'
+                : 'bg-gray-700 border-gray-600 hover:border-gray-500'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Icon type="compare" className="w-5 h-5" />
+              <span className="text-sm font-medium">Before/After Compare</span>
+            </div>
+            {compareMode && <span className="text-xs bg-blue-500 px-2 py-1 rounded">ON</span>}
+          </button>
         </ControlGroup>
 
         <div className="mt-auto pt-4">

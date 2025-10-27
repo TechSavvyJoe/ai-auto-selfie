@@ -15,6 +15,22 @@ export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-ri
 export type AIMode = 'professional' | 'cinematic' | 'portrait' | 'creative' | 'natural';
 export type EnhancementLevel = 'subtle' | 'moderate' | 'dramatic';
 
+export interface ImageAdjustments {
+  exposure: number;      // -50 to 50
+  contrast: number;      // -50 to 50
+  temperature: number;   // -50 to 50 (warm to cool)
+  saturation: number;    // -50 to 50
+  sharpen: number;       // 0 to 10
+}
+
+export const DEFAULT_IMAGE_ADJUSTMENTS: ImageAdjustments = {
+  exposure: 0,
+  contrast: 0,
+  temperature: 0,
+  saturation: 0,
+  sharpen: 0,
+};
+
 export interface EditOptions {
   theme: Theme;
   message: string;
@@ -26,6 +42,9 @@ export interface EditOptions {
   // Optional AI-specific controls
   aiMode?: AIMode;
   enhancementLevel?: EnhancementLevel;
+  // Optional image adjustments (hints for AI enhancement)
+  adjustments?: ImageAdjustments;
+  compareMode?: boolean; // For before/after preview
 }
 
 export interface LogoData {

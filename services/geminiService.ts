@@ -1,5 +1,5 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-import { EditOptions, Theme, LogoPosition } from "../types";
+import { EditOptions, Theme, LogoPosition, ImageAdjustments } from "../types";
 
 const API_KEY = process.env.API_KEY;
 
@@ -122,6 +122,44 @@ const getModeInstructions = (mode: AIMode): string => {
 };
 
 /**
+ * Generate adjustment hints for the enhancement prompt
+ */
+const getAdjustmentHints = (adjustments: ImageAdjustments | undefined): string => {
+  if (!adjustments) {
+    return '';
+  }
+
+  const hints: string[] = [];
+
+  if (adjustments.exposure !== 0) {
+    hints.push(`**Exposure**: ${adjustments.exposure > 0 ? 'Brighten' : 'Darken'} by ${Math.abs(adjustments.exposure)}% for proper luminance`);
+  }
+  if (adjustments.contrast !== 0) {
+    hints.push(`**Contrast**: ${adjustments.contrast > 0 ? 'Increase' : 'Decrease'} by ${Math.abs(adjustments.contrast)}% for visual impact`);
+  }
+  if (adjustments.temperature !== 0) {
+    hints.push(`**Color Temperature**: Shift ${adjustments.temperature > 0 ? 'warmer' : 'cooler'} by ${Math.abs(adjustments.temperature)}K for mood`);
+  }
+  if (adjustments.saturation !== 0) {
+    hints.push(`**Saturation**: ${adjustments.saturation > 0 ? 'Increase' : 'Decrease'} by ${Math.abs(adjustments.saturation)}% for color vibrancy`);
+  }
+  if (adjustments.sharpen !== 0) {
+    hints.push(`**Sharpening**: Apply ${adjustments.sharpen}/10 level for detail enhancement`);
+  }
+
+  if (hints.length === 0) {
+    return '';
+  }
+
+  return `
+**USER ADJUSTMENT PREFERENCES**:
+${hints.join('\n')}
+- Integrate these adjustments naturally into the enhancement
+- Use them as creative direction hints, not strict technical parameters
+`;
+};
+
+/**
  * Generate inspirational messages with AI
  */
 export const generateInspirationalMessage = async (theme: Theme): Promise<string> => {
@@ -170,16 +208,17 @@ export const enhanceImageWithAI = async (
   options: EnhancedAIOptions
 ): Promise<string | null> => {
   const model = 'gemini-2.5-flash-image';
-  const { 
-    theme, 
-    message, 
-    ctaText, 
-    logoBase64, 
-    logoMimeType, 
-    aspectRatio, 
+  const {
+    theme,
+    message,
+    ctaText,
+    logoBase64,
+    logoMimeType,
+    aspectRatio,
     logoPosition,
     mode = 'professional',
     enhancementLevel = 'moderate',
+    adjustments,
   } = options;
 
   const aspectRatioDescriptions: { [key: string]: string } = {
@@ -233,6 +272,8 @@ You are a world-renowned photographer combining technical mastery with artistic 
 ${getAdvancedThemePrompt(theme, mode)}
 
 ${getModeInstructions(mode)}
+
+${getAdjustmentHints(adjustments)}
 
 ═══════════════════════════════════════════════════════════════
 ✨ TYPOGRAPHY & DESIGN ELEMENTS
