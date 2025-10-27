@@ -71,4 +71,4 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
   );
 };
 
-export default ResultView;
+export default React.memo(ResultView);

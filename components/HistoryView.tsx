@@ -143,7 +143,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ gallery, onSelectImage, onCle
       : '0';
 
     // Find most used AI mode
-    const modeUsage = Object.entries(activeModeCount).sort(([,a], [,b]) => b - a);
+  const modeUsage = Object.entries(activeModeCount).sort(([,a], [,b]) => (b as number) - (a as number));
     const mostUsedMode = modeUsage[0]?.[0] || 'none';
 
     return {
@@ -428,7 +428,7 @@ const GalleryGridItem: React.FC<GalleryGridItemProps> = React.memo(({ image, onS
 
   return (
     <div
-      className={`group relative bg-gray-800 rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-all duration-200 shadow-lg aspect-square border-2 ${
+  className={`gallery-item-enter hover-lift group relative bg-gray-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 shadow-lg aspect-square border-2 ${
         isSelected ? 'border-primary-500 scale-105' : 'border-transparent'
       }`}
       onClick={() => onSelect(image)}

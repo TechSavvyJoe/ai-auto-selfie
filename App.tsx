@@ -1,25 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { AppState } from './types';
 import { useAppContext } from './context/AppContext';
-import CameraView from './components/CameraView';
-import EditView from './components/EditView';
-import ResultView from './components/ResultView';
-import GalleryView from './components/HistoryView';
-import GalleryDetailView from './components/HistoryDetailView';
 import Spinner from './components/common/Spinner';
 import Header from './components/common/Header';
 import Button from './components/common/Button';
 import Icon from './components/common/Icon';
-import ShortcutsHelpDialog from './components/ShortcutsHelpDialog';
-import SettingsPanel from './components/SettingsPanel';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
-import TutorialOverlay from './components/TutorialOverlay';
-import BatchEnhancePanel from './components/BatchEnhancePanel';
 import { getShortcutsService } from './services/shortcutsService';
 import { getAnalyticsService } from './services/analyticsService';
 import { getTutorialService } from './services/tutorialService';
 import { theme } from './design/theme';
+
+// Lazy-load heavy components for code-splitting
+const CameraView = lazy(() => import('./components/CameraView'));
+const EditView = lazy(() => import('./components/EditView'));
+const ResultView = lazy(() => import('./components/ResultView'));
+const GalleryView = lazy(() => import('./components/HistoryView'));
+const GalleryDetailView = lazy(() => import('./components/HistoryDetailView'));
+const ShortcutsHelpDialog = lazy(() => import('./components/ShortcutsHelpDialog'));
+const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
+const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
+const BatchEnhancePanel = lazy(() => import('./components/BatchEnhancePanel'));
 
 interface StartViewProps {
   onStart: () => void;
@@ -195,41 +197,55 @@ const AppContent: React.FC = () => {
       case AppState.START:
         return <StartView onStart={startNewPost} onViewGallery={viewGallery} />;
       case AppState.CAMERA:
-        return <CameraView onCapture={captureImage} />;
+        return (
+          <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
+            <CameraView onCapture={captureImage} />
+          </Suspense>
+        );
       case AppState.EDITING:
         return originalImage ? (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           <EditView imageSrc={originalImage} onEnhance={enhanceImage} onRetake={resetToCamera} />
+            </Suspense>
         ) : (
           <StartView onStart={startNewPost} onViewGallery={viewGallery} />
         );
       case AppState.RESULT:
         return enhancedImage ? (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           <ResultView
             imageSrc={enhancedImage}
             originalImage={originalImage || undefined}
             onStartOver={resetToCamera}
             onViewGallery={viewGallery}
           />
+            </Suspense>
         ) : (
           <StartView onStart={startNewPost} onViewGallery={viewGallery} />
         );
       case AppState.GALLERY:
         return (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           <GalleryView
             gallery={gallery}
             onSelectImage={selectGalleryImage}
             onClearGallery={clearGallery}
           />
+            </Suspense>
         );
       case AppState.GALLERY_DETAIL:
         return selectedGalleryImage ? (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           <GalleryDetailView image={selectedGalleryImage} onDelete={deleteGalleryImage} />
+            </Suspense>
         ) : (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           <GalleryView
             gallery={gallery}
             onSelectImage={selectGalleryImage}
             onClearGallery={clearGallery}
           />
+            </Suspense>
         );
       default:
         return <StartView onStart={startNewPost} onViewGallery={viewGallery} />;
@@ -270,16 +286,26 @@ const AppContent: React.FC = () => {
         <div className="absolute inset-0">{renderContent()}</div>
       </main>
 
-      <ShortcutsHelpDialog isOpen={showShortcutsDialog} onClose={() => setShowShortcutsDialog(false)} />
-      <SettingsPanel isOpen={showSettingsPanel} onClose={() => setShowSettingsPanel(false)} />
-      <AnalyticsDashboard isOpen={showAnalyticsDashboard} onClose={() => setShowAnalyticsDashboard(false)} />
+      <Suspense fallback={null}>
+        <ShortcutsHelpDialog isOpen={showShortcutsDialog} onClose={() => setShowShortcutsDialog(false)} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SettingsPanel isOpen={showSettingsPanel} onClose={() => setShowSettingsPanel(false)} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AnalyticsDashboard isOpen={showAnalyticsDashboard} onClose={() => setShowAnalyticsDashboard(false)} />
+      </Suspense>
       {showBatchEnhancePanel && (
+          <Suspense fallback={null}>
         <BatchEnhancePanel
           imageIds={gallery.map(img => img.id)}
           onClose={() => setShowBatchEnhancePanel(false)}
         />
+          </Suspense>
       )}
-      <TutorialOverlay enabled={getTutorialService().shouldShowIntroduction()} />
+      <Suspense fallback={null}>
+        <TutorialOverlay enabled={getTutorialService().shouldShowIntroduction()} />
+      </Suspense>
 
       <Analytics />
     </div>

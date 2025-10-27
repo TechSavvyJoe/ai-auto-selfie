@@ -442,4 +442,4 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   );
 };
 
-export default CameraView;
+export default React.memo(CameraView);

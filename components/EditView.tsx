@@ -455,4 +455,4 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   );
 };
 
-export default EditView;
+export default React.memo(EditView);
