@@ -6,12 +6,6 @@
   "projectSettings": {
     "nodeVersion": "18.x"
   },
-  "env": {
-    "VITE_GEMINI_API_KEY": {
-      "description": "Google Gemini API Key for image enhancement",
-      "required": true
-    }
-  },
   "git": {
     "silent": false
   },
