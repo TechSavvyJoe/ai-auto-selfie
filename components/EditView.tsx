@@ -6,6 +6,7 @@ import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, Enhanc
 import { fileToBase64 } from '../utils/imageUtils';
 import { generateInspirationalMessage } from '../services/geminiService';
 import * as storage from '../services/storageService';
+import { usePresets } from '../services/presetService';
 import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
@@ -24,6 +25,8 @@ const themes: { id: Theme; label: string; description: string; icon: React.React
 ];
 
 const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
+  const presets = usePresets();
+
   const [theme, setTheme] = useState<Theme>('modern');
   const [message, setMessage] = useState('Congratulations!');
   const [ctaText, setCtaText] = useState('');
@@ -38,6 +41,9 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(DEFAULT_IMAGE_ADJUSTMENTS);
   const [compareMode, setCompareMode] = useState(false);
   const [expandAdjustments, setExpandAdjustments] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
 
   useEffect(() => {
     const savedLogo = storage.getLogo();
@@ -82,6 +88,37 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const handleResetAdjustments = useCallback(() => {
     setAdjustments(DEFAULT_IMAGE_ADJUSTMENTS);
   }, []);
+
+  const handleSavePreset = useCallback(() => {
+    if (presetName.trim()) {
+      presets.createPreset(presetName, adjustments, {
+        description: `${theme} theme with ${aiMode} mode`,
+        category: 'custom',
+        editOptions: {
+          theme,
+          aiMode,
+          enhancementLevel,
+        },
+        tags: [theme, aiMode],
+      });
+      setPresetName('');
+      setShowSavePresetDialog(false);
+    }
+  }, [presetName, adjustments, theme, aiMode, enhancementLevel, presets]);
+
+  const handleLoadPreset = useCallback((presetId: string) => {
+    const preset = presets.getPreset(presetId);
+    if (preset) {
+      setAdjustments(preset.adjustments);
+      if (preset.editOptions) {
+        if (preset.editOptions.theme) setTheme(preset.editOptions.theme);
+        if (preset.editOptions.aiMode) setAiMode(preset.editOptions.aiMode);
+        if (preset.editOptions.enhancementLevel) setEnhancementLevel(preset.editOptions.enhancementLevel);
+      }
+      presets.recordUsage(presetId);
+      setShowPresets(false);
+    }
+  }, [presets]);
 
   const isAdjusted = Object.values(adjustments).some(v => v !== 0);
 
@@ -269,6 +306,106 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
               )}
             </div>
           )}
+        </ControlGroup>
+
+        <ControlGroup title="Quick Presets">
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowPresets(!showPresets)}
+              className="w-full p-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-md transition-colors flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Icon type="sparkles" className="w-4 h-4" />
+                {presets.presets.length > 0 ? `Load Preset (${presets.presets.length})` : 'No Presets Yet'}
+              </span>
+              <Icon
+                type={showPresets ? 'chevronUp' : 'chevronDown'}
+                className="w-4 h-4 transition-transform"
+                style={{ transform: showPresets ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
+            </button>
+
+            {showPresets && presets.presets.length > 0 && (
+              <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-gray-800/30 rounded-md border border-gray-700">
+                {presets.getFavorites().map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleLoadPreset(preset.id)}
+                    className="w-full text-left p-2 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-semibold">{preset.name}</div>
+                      <div className="text-white/60">{preset.description || preset.category}</div>
+                    </div>
+                    {preset.isFavorite && <Icon type="heart" className="w-3 h-3 fill-red-500 text-red-500" />}
+                  </button>
+                ))}
+                {presets.getMostUsed(3).length > 0 && (
+                  <>
+                    <div className="text-xs text-white/60 font-semibold mt-3 mb-2">Most Used</div>
+                    {presets.getMostUsed(3).map(preset => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleLoadPreset(preset.id)}
+                        className="w-full text-left p-2 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-semibold">{preset.name}</div>
+                          <div className="text-white/60">Used {preset.uses} times</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowSavePresetDialog(!showSavePresetDialog)}
+              className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon type="save" className="w-4 h-4" />
+              Save Current as Preset
+            </button>
+
+            {showSavePresetDialog && (
+              <div className="space-y-2 p-3 bg-gray-800/50 rounded-md border border-blue-500/30">
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Preset name..."
+                  maxLength={30}
+                  className="w-full px-3 py-2 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-500 focus:outline-none"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSavePreset}
+                    disabled={!presetName.trim()}
+                    className="flex-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSavePresetDialog(false);
+                      setPresetName('');
+                    }}
+                    className="flex-1 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </ControlGroup>
 
         <ControlGroup title="Preview Options">

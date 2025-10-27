@@ -51,3 +51,25 @@ export interface LogoData {
   base64: string;
   mimeType: string;
 }
+
+export interface GalleryImage {
+  id: string;
+  imageDataUrl: string;
+  thumbnail?: string; // Smaller preview for grid
+  createdAt: number;
+  // Enhancement metadata
+  theme?: Theme;
+  aiMode?: AIMode;
+  enhancementLevel?: EnhancementLevel;
+  adjustments?: ImageAdjustments;
+  // Editing metadata
+  message?: string;
+  ctaText?: string;
+  aspectRatio?: AspectRatio;
+  logoPosition?: LogoPosition;
+  // Analytics
+  processingTime?: number; // milliseconds
+  rating?: number; // 1-5 stars
+  isFavorite?: boolean;
+  tags?: string[];
+}

@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { AppState, EditOptions } from '../types';
+import { AppState, EditOptions, GalleryImage } from '../types';
 import { enhanceImageWithAI } from '../services/geminiService';
 import { dataUrlToBase64 } from '../utils/imageUtils';
 import * as storage from '../services/storageService';
@@ -14,11 +14,12 @@ export interface AppContextType {
   appState: AppState;
   originalImage: string | null;
   enhancedImage: string | null;
-  gallery: string[];
-  selectedGalleryImage: { url: string; index: number } | null;
+  gallery: GalleryImage[];
+  selectedGalleryImage: GalleryImage | null;
   isLoading: boolean;
   error: string | null;
   loadingMessage: string;
+  processingStartTime?: number;
 
   // Navigation
   setAppState: (state: AppState) => void;
@@ -33,8 +34,8 @@ export interface AppContextType {
 
   // Gallery management
   viewGallery: () => void;
-  selectGalleryImage: (url: string, index: number) => void;
-  deleteGalleryImage: (index: number) => void;
+  selectGalleryImage: (image: GalleryImage) => void;
+  deleteGalleryImage: (imageId: string) => void;
   clearGallery: () => void;
 
   // Error handling
@@ -48,11 +49,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [appState, setAppState] = useState<AppState>(AppState.START);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
-  const [gallery, setGallery] = useState<string[]>([]);
-  const [selectedGalleryImage, setSelectedGalleryImage] = useState<{ url: string; index: number } | null>(null);
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState<GalleryImage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
+  const [processingStartTime, setProcessingStartTime] = useState<number | undefined>();
 
   const loadingMessages = [
     'Briefing the creative director...',
@@ -125,6 +127,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setIsLoading(true);
     setError(null);
+    const startTime = Date.now();
+    setProcessingStartTime(startTime);
     let messageInterval: number | undefined;
 
     try {
@@ -140,8 +144,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (enhancedBase64) {
         const newImageUrl = `data:image/jpeg;base64,${enhancedBase64}`;
+        const processingTime = Date.now() - startTime;
         setEnhancedImage(newImageUrl);
-        const updatedGallery = storage.addToHistory(newImageUrl);
+        const updatedGallery = storage.addToHistory(newImageUrl, {
+          ...options,
+          processingTime,
+        });
         setGallery(updatedGallery);
         setAppState(AppState.RESULT);
       } else {
@@ -154,6 +162,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAppState(AppState.EDITING);
     } finally {
       setIsLoading(false);
+      setProcessingStartTime(undefined);
       if (messageInterval) clearInterval(messageInterval);
       setLoadingMessage('');
     }
@@ -164,13 +173,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppState(AppState.GALLERY);
   }, []);
 
-  const selectGalleryImage = useCallback((url: string, index: number) => {
-    setSelectedGalleryImage({ url, index });
+  const selectGalleryImage = useCallback((image: GalleryImage) => {
+    setSelectedGalleryImage(image);
     setAppState(AppState.GALLERY_DETAIL);
   }, []);
 
-  const deleteGalleryImage = useCallback((index: number) => {
-    const updatedGallery = storage.deleteFromHistory(index);
+  const deleteGalleryImage = useCallback((imageId: string) => {
+    const updatedGallery = storage.deleteFromHistory(imageId);
     setGallery(updatedGallery);
     setAppState(AppState.GALLERY);
     setSelectedGalleryImage(null);
@@ -194,6 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isLoading,
     error,
     loadingMessage,
+    processingStartTime,
     setAppState,
     goHome,
     goBack,
