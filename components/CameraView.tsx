@@ -6,6 +6,32 @@ interface CameraViewProps {
   onCapture: (imageDataUrl: string) => void;
 }
 
+interface AspectRatioGuideProps {
+  aspectRatio: '1:1' | '4:3' | '16:9' | '9:16';
+}
+
+const AspectRatioGuide: React.FC<AspectRatioGuideProps> = ({ aspectRatio }) => {
+  const getAspectClass = () => {
+    switch (aspectRatio) {
+      case '4:3':
+        return 'aspect-video'; // Close approximation
+      case '16:9':
+        return 'aspect-video';
+      case '9:16':
+        return 'aspect-[9/16]';
+      case '1:1':
+      default:
+        return 'aspect-square';
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-8">
+      <div className={`w-full h-full ${getAspectClass()} border-2 border-primary-400/50 rounded-lg shadow-inner`} />
+    </div>
+  );
+};
+
 const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,6 +44,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
   const [levelAngle, setLevelAngle] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:3' | '16:9' | '9:16'>('1:1');
   const levelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -168,6 +195,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
 
       {/* Overlays */}
       {showGrid && <div className="grid-overlay-3x3" aria-hidden="true" />}
+
+      {/* Aspect Ratio Guide */}
+      <AspectRatioGuide aspectRatio={aspectRatio} />
+
       <div ref={levelRef} className="level-indicator" aria-hidden="true" />
       {flash && <div className="absolute inset-0 bg-white/70" aria-hidden="true" />}
       {countdown !== null && (
@@ -177,22 +208,42 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
       )}
 
       {/* Top controls */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-end gap-2 bg-gradient-to-b from-black/40 to-transparent">
-        <button
-          onClick={() => setShowGrid((s) => !s)}
-          className={`p-2 rounded-lg border ${showGrid ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
-          aria-label="Toggle grid"
-        >
-          <Icon type="grid" className="w-5 h-5 text-white" />
-        </button>
-        <button
-          onClick={() => setTimerEnabled((t) => !t)}
-          className={`p-2 rounded-lg border ${timerEnabled ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
-          aria-label="Toggle timer"
-          title="3s timer"
-        >
-          <Icon type="timer" className="w-5 h-5 text-white" />
-        </button>
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between gap-2 bg-gradient-to-b from-black/40 to-transparent">
+        {/* Aspect Ratio Selector */}
+        <div className="flex gap-1 bg-black/30 rounded-lg p-1 backdrop-blur-sm">
+          {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
+            <button
+              key={ratio}
+              onClick={() => setAspectRatio(ratio)}
+              className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+                aspectRatio === ratio
+                  ? 'bg-white/30 text-white border border-white/50'
+                  : 'bg-white/10 text-white/70 border border-white/20 hover:bg-white/20'
+              }`}
+              title={`Aspect ratio ${ratio}`}
+            >
+              {ratio}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setShowGrid((s) => !s)}
+            className={`p-2 rounded-lg border ${showGrid ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+            aria-label="Toggle grid"
+          >
+            <Icon type="grid" className="w-5 h-5 text-white" />
+          </button>
+          <button
+            onClick={() => setTimerEnabled((t) => !t)}
+            className={`p-2 rounded-lg border ${timerEnabled ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+            aria-label="Toggle timer"
+            title="3s timer"
+          >
+            <Icon type="timer" className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent flex justify-center items-center gap-8">
         <div className="w-16 h-16 flex items-center justify-center">
