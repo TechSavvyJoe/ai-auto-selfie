@@ -100,14 +100,51 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
     const getStream = async () => {
       try {
         const deviceId = cameras[selectedCameraIndex].deviceId;
-        const constraints = {
+        const constraints: MediaStreamConstraints = {
           video: {
             deviceId: { exact: deviceId },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          }
+            width: { ideal: 3840, min: 1920 }, // 4K ideal, 1080p minimum
+            height: { ideal: 2160, min: 1080 },
+            frameRate: { ideal: 60, min: 30 },
+            facingMode: cameras[selectedCameraIndex].label.toLowerCase().includes('front') ? 'user' : 'environment',
+            // Advanced constraints for better quality
+            aspectRatio: { ideal: 16/9 },
+            focusMode: 'continuous',
+            exposureMode: 'continuous',
+            whiteBalanceMode: 'continuous',
+          } as MediaTrackConstraints
         };
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        // Apply additional track settings for enhanced quality
+        const videoTrack = mediaStream.getVideoTracks()[0];
+        if (videoTrack) {
+          const capabilities = videoTrack.getCapabilities();
+          const settings: any = {};
+          
+          // Set highest resolution available
+          if (capabilities.width && capabilities.height) {
+            settings.width = capabilities.width.max || 3840;
+            settings.height = capabilities.height.max || 2160;
+          }
+          
+          // Enable HDR if supported
+          if ('exposureMode' in capabilities) {
+            settings.exposureMode = 'continuous';
+          }
+          
+          // Set focus mode
+          if ('focusMode' in capabilities) {
+            settings.focusMode = 'continuous';
+          }
+          
+          try {
+            await videoTrack.applyConstraints(settings);
+          } catch (e) {
+            console.warn('Could not apply advanced constraints:', e);
+          }
+        }
+        
         streamRef.current = mediaStream;
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
@@ -133,6 +170,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
     if (video && canvas) {
       const context = canvas.getContext('2d');
       if (context) {
+        // Use higher resolution for better quality
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         
@@ -143,8 +181,14 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
           context.scale(-1, 1);
         }
         
+        // Enable image smoothing for better quality
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Use PNG for lossless quality or high-quality JPEG
+        const dataUrl = canvas.toDataURL('image/png');
         onCapture(dataUrl);
       }
     }
@@ -181,14 +225,21 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
     if (!streamRef.current) return;
 
     recordedChunksRef.current = [];
-    const options = {
+    const options: MediaRecorderOptions = {
       mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 2500000,
+      videoBitsPerSecond: 8000000, // 8 Mbps for higher quality
     };
 
     // Fallback if vp9 not supported
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    if (!MediaRecorder.isTypeSupported(options.mimeType!)) {
+      options.mimeType = 'video/webm;codecs=vp8';
+      options.videoBitsPerSecond = 5000000; // 5 Mbps for vp8
+    }
+    
+    // Final fallback
+    if (!MediaRecorder.isTypeSupported(options.mimeType!)) {
       options.mimeType = 'video/webm';
+      options.videoBitsPerSecond = 5000000;
     }
 
     const mediaRecorder = new MediaRecorder(streamRef.current, options);
