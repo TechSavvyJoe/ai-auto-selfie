@@ -1,5 +1,4 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-// FIX: Import LogoPosition type to be used in positionMap.
 import { EditOptions, Theme, LogoPosition } from "../types";
 
 const API_KEY = process.env.API_KEY;
@@ -10,134 +9,326 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const getThemePrompt = (theme: Theme) => {
-    switch (theme) {
-        case 'luxury':
-            return `
-- **VISUAL STYLE:** Cinematic, sophisticated, and premium.
-- **COLOR GRADE:** Deepen shadows and create a high-contrast, slightly desaturated look. Emphasize metallic sheens and reflections. Think of a high-end car commercial.
-- **TYPOGRAPHY:** Use a sophisticated, elegant, high-contrast serif font (like Didot or a stylish Playfair Display).
-- **BACKGROUND:** If enhancing, apply a creamy, professional bokeh. If replacing, use a minimalist concrete space, a modern showroom with soft architectural lighting, or a dramatic nighttime city scene. Focus on photorealism.
-`;
-        case 'dynamic':
-            return `
-- **VISUAL STYLE:** Energetic, vibrant, and exciting.
-- **COLOR GRADE:** Boost saturation and vibrancy. Create a clean, bright, high-energy feel. Add subtle motion blur to the background to imply movement.
-- **TYPOGRAPHY:** Use a strong, bold, impactful sans-serif font (like Helvetica Now Display Bold or Montserrat ExtraBold). It can be slightly italicized to suggest speed.
-- **BACKGROUND:** If enhancing, add a sense of speed with subtle directional blur. If replacing, use a winding mountain road, an urban street with light trails, or a clean, modern racetrack setting.
-`;
-        case 'family':
-            return `
-- **VISUAL STYLE:** Warm, inviting, and trustworthy.
-- **COLOR GRADE:** Bright, warm, and natural lighting. Think of a sunny afternoon. The colors should be welcoming and true-to-life.
-- **TYPOGRAPHY:** Use a clean, friendly, and highly-readable sans-serif font (like Inter or Gilroy).
-- **BACKGROUND:** If enhancing, ensure the original background looks clean and pleasant. If replacing, use a scenic family-friendly location like a beautiful suburban home driveway, a park, or a coastal road during the day.
-`;
-        case 'modern':
-        default:
-            return `
-- **VISUAL STYLE:** Clean, crisp, and minimalist.
-- **COLOR GRADE:** A very natural and balanced color grade. Focus on clarity, sharpness, and true-to-life colors.
-- **TYPOGRAPHY:** Use an elegant, modern, and highly-readable sans-serif font family (like Inter or Gilroy).
-- **BACKGROUND:** If enhancing, subtly clean up distracting elements. If replacing, use a clean, professional, light-gray cyclorama studio wall for a perfect product-focused shot. Ensure perfect, soft lighting.
-`;
-    }
+/**
+ * Premium AI Enhancement Modes
+ */
+export type AIMode = 'professional' | 'cinematic' | 'portrait' | 'creative' | 'natural';
+
+export interface EnhancedAIOptions extends EditOptions {
+  mode?: AIMode;
+  enhancementLevel?: 'subtle' | 'moderate' | 'dramatic';
+  stylePreset?: string;
 }
 
+/**
+ * Premium theme prompts for professional-grade results
+ */
+const getAdvancedThemePrompt = (theme: Theme, mode: AIMode = 'professional'): string => {
+  const basePrompts = {
+    luxury: {
+      visual: 'Ultra-premium, magazine-quality photography with cinematic lighting and sophisticated color grading',
+      colorGrade: 'Deep, rich tones with enhanced shadows. Metallic highlights with subtle warmth. Think Vogue or high-end automotive advertising',
+      lighting: 'Dramatic three-point lighting with soft key light, subtle fill, and rim lighting for depth',
+      atmosphere: 'Refined elegance with premium bokeh and professional depth of field',
+    },
+    dynamic: {
+      visual: 'High-energy, vibrant, action-oriented photography with motion and impact',
+      colorGrade: 'Punchy, saturated colors with enhanced contrast. Cool highlights, warm midtones',
+      lighting: 'Sharp, directional lighting with strong shadows for dimension and drama',
+      atmosphere: 'Energetic with slight motion blur suggestion in background elements',
+    },
+    family: {
+      visual: 'Warm, inviting, and genuine moments with natural beauty and approachability',
+      colorGrade: 'Bright, warm, and natural with enhanced golden hour tones',
+      lighting: 'Soft, diffused natural lighting that\'s flattering and welcoming',
+      atmosphere: 'Comfortable and authentic with gentle bokeh and natural depth',
+    },
+    modern: {
+      visual: 'Clean, minimalist, and contemporary with perfect technical execution',
+      colorGrade: 'Balanced, true-to-life colors with enhanced clarity and sharpness',
+      lighting: 'Even, studio-quality lighting with subtle modeling',
+      atmosphere: 'Crisp and professional with controlled background separation',
+    },
+  };
 
-export const generateInspirationalMessage = async (theme: Theme): Promise<string> => {
-    let prompt = `Generate a short, celebratory message for a social media post about a customer getting a new car. Max 5 words. The theme is "${theme}". Be creative and align with the theme's tone.`;
-    
-    if (theme === 'luxury') prompt += ' Examples: "Unveiling Perfection.", "The Art of Arrival.", "Excellence, Delivered."';
-    if (theme === 'dynamic') prompt += ' Examples: "Adventure Activated.", "Unleash the Drive.", "The Thrill Begins."';
-    if (theme === 'family') prompt += ' Examples: "New Journeys Ahead.", "The Next Chapter Awaits.", "Making Memories, Miles at a Time."';
-    if (theme === 'modern') prompt += ' Examples: "Simply Stunning.", "Future is Now.", "Design Driven."';
+  const themePrompt = basePrompts[theme] || basePrompts.modern;
+  
+  return `
+**VISUAL DIRECTION:**
+${themePrompt.visual}
 
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        return response.text.trim().replace(/"/g, '');
-    } catch (error) {
-        console.error("Error generating inspirational message:", error);
-        return "Congratulations!";
-    }
+**COLOR SCIENCE:**
+${themePrompt.colorGrade}
+- Apply professional color grading with accurate skin tones
+- Enhance micro-contrast without crushing blacks or blowing highlights
+- Perfect white balance with creative intent
+
+**LIGHTING DESIGN:**
+${themePrompt.lighting}
+- Ensure consistent light directionality throughout the scene
+- Add subtle environment lighting reflections
+- Preserve natural catchlights in eyes
+
+**ATMOSPHERE & DEPTH:**
+${themePrompt.atmosphere}
+- Professional depth of field with smooth bokeh
+- Subtle atmospheric perspective and haze
+- Perfect edge detail preservation on subjects
+`;
 };
 
+/**
+ * AI Mode-specific instructions
+ */
+const getModeInstructions = (mode: AIMode): string => {
+  const modeSpecs = {
+    professional: `
+- Execute with precision of a $100,000 commercial photoshoot
+- Perfect technical quality: tack-sharp focus, zero noise, perfect exposure
+- Professional retouching: subtle skin smoothing, blemish removal, perfect highlights
+- Commercial-grade color accuracy and consistency
+`,
+    cinematic: `
+- Apply Hollywood-grade color grading with film-like quality
+- Use cinematic color palettes (teal & orange, crushed blacks, lifted shadows)
+- Add subtle film grain and texture for authenticity
+- Create dramatic contrast with rich, deep blacks and creamy highlights
+- Think Christopher Nolan meets Annie Leibovitz
+`,
+    portrait: `
+- Master portrait photographer quality (think Peter Hurley, Annie Leibovitz)
+- Perfect skin texture preservation with natural retouching
+- Beautiful eye enhancement with natural catchlights
+- Professional hair and clothing detail enhancement
+- Flattering facial contouring through light and shadow
+`,
+    creative: `
+- Push creative boundaries while maintaining realism
+- Bold color choices with harmonious palettes
+- Artistic composition enhancements
+- Unique atmospheric effects and mood creation
+- Stand-out social media worthy aesthetics
+`,
+    natural: `
+- Enhance natural beauty without artificial over-processing
+- True-to-life color reproduction with subtle enhancement
+- Preserve authentic moments and genuine expressions
+- Clean, bright, and crisp with perfect white balance
+- Editorial magazine quality with natural aesthetic
+`,
+  };
+
+  return modeSpecs[mode] || modeSpecs.professional;
+};
+
+/**
+ * Generate inspirational messages with AI
+ */
+export const generateInspirationalMessage = async (theme: Theme): Promise<string> => {
+  const themeContext = {
+    luxury: 'sophisticated, premium, and exclusive',
+    dynamic: 'energetic, exciting, and bold',
+    family: 'warm, welcoming, and heartfelt',
+    modern: 'clean, contemporary, and stylish',
+  };
+
+  const prompt = `Generate a short, impactful message for a professional social media post. 
+  Theme: ${theme} (${themeContext[theme]})
+  Requirements:
+  - Maximum 4-6 words
+  - Professional and inspiring
+  - Memorable and share-worthy
+  - No quotation marks
+  - Capitalize appropriately
+  
+  Examples for ${theme}:
+  ${theme === 'luxury' ? '"Excellence Redefined", "The Art of Prestige", "Luxury Unveiled"' : ''}
+  ${theme === 'dynamic' ? '"Power Unleashed", "Drive Your Passion", "Adventure Begins"' : ''}
+  ${theme === 'family' ? '"Creating Memories Together", "Journey Starts Here", "Making Moments Matter"' : ''}
+  ${theme === 'modern' ? '"Innovation Elevated", "Future Forward", "Design Perfected"' : ''}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    return response.text.trim().replace(/["']/g, '');
+  } catch (error) {
+    console.error("Error generating message:", error);
+    return theme === 'luxury' ? 'Excellence Awaits' : 
+           theme === 'dynamic' ? 'Adventure Calls' :
+           theme === 'family' ? 'Memories Begin' : 'Simply Perfect';
+  }
+};
+
+/**
+ * Premium AI Image Enhancement
+ */
 export const enhanceImageWithAI = async (
   base64ImageData: string,
   mimeType: string,
-  options: EditOptions
+  options: EnhancedAIOptions
 ): Promise<string | null> => {
   const model = 'gemini-2.5-flash-image';
-  const { theme, message, ctaText, logoBase64, logoMimeType, aspectRatio, logoPosition } = options;
+  const { 
+    theme, 
+    message, 
+    ctaText, 
+    logoBase64, 
+    logoMimeType, 
+    aspectRatio, 
+    logoPosition,
+    mode = 'professional',
+    enhancementLevel = 'moderate',
+  } = options;
 
-  const ratioMap: { [key: string]: string } = {
-    '1:1': 'a square 1:1 aspect ratio',
-    '9:16': 'a vertical 9:16 aspect ratio',
-    '1.91:1': 'a horizontal 1.91:1 aspect ratio',
-    'original': 'its original aspect ratio',
+  const aspectRatioDescriptions: { [key: string]: string } = {
+    '1:1': 'perfect square 1:1 (1080x1080) Instagram format',
+    '9:16': 'vertical 9:16 (1080x1920) Instagram Story/Reels format',
+    '1.91:1': 'horizontal 1.91:1 (1200x628) Facebook/LinkedIn format',
+    'original': 'original aspect ratio',
   };
-  const targetAspectRatio = ratioMap[aspectRatio];
+
+  const enhancementLevels = {
+    subtle: 'Minimal, natural enhancement maintaining 95% original character',
+    moderate: 'Balanced professional enhancement with noticeable improvement',
+    dramatic: 'Bold transformation while maintaining photorealism',
+  };
 
   let prompt = `
-**ROLE: World-Class Creative Director for Automotive Social Media**
+╔════════════════════════════════════════════════════════════════╗
+║     PREMIUM AI PHOTO ENHANCEMENT - PROFESSIONAL GRADE          ║
+║          Powered by Advanced Computer Vision AI                ║
+╚════════════════════════════════════════════════════════════════╝
 
-**MASTER DIRECTIVE: Your task is to transform a customer photo into a high-end, professional social media post for a car dealership. The final output must be photorealistic, aesthetically pleasing, and adhere strictly to the theme.**
+**ROLE**: Master Photographer & Creative Director
+You are a world-renowned photographer combining technical mastery with artistic vision.
 
-**UNBREAKABLE RULE #1: ABSOLUTE SUBJECT FIDELITY.**
-You are FORBIDDEN from changing, replacing, redrawing, or altering the people or the main vehicle in the original photo. They must be preserved with 100% accuracy. Your job is to EDIT AND ENHANCE, not recreate.
+═══════════════════════════════════════════════════════════════
+🎯 ABSOLUTE REQUIREMENTS (NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════════════
 
-**UNBREAKABLE RULE #2: STRICT ASPECT RATIO.**
-The final output image MUST strictly be ${targetAspectRatio}. This is a non-negotiable instruction. Creatively crop and compose the shot to meet this requirement while keeping the subjects as the focal point.
+✓ PRESERVE 100% SUBJECT FIDELITY
+  - People, faces, clothing, and main objects remain IDENTICAL
+  - Zero alteration to facial features, body proportions, or identity
+  - Preserve natural expressions and authentic moments
 
-**UNBREAKABLE RULE #3: ABSOLUTE PHOTOREALISM.**
-All edits, especially background replacements and lighting adjustments, must be flawlessly photorealistic. The final image should look like it was captured by a professional automotive photographer, not generated by AI. Avoid any cartoonish or artificial artifacts.
+✓ STRICT ASPECT RATIO: ${aspectRatioDescriptions[aspectRatio]}
+  - Compose and crop to exact specifications
+  - Maintain subject as focal point within frame
 
----
-**CREATIVE BRIEF**
+✓ PHOTOREALISTIC QUALITY
+  - All enhancements must be indistinguishable from camera-captured
+  - No AI artifacts, no cartoon-like elements, no artificial look
+  - Professional photography studio quality
 
-**1. THEME & AESTHETIC:**
-- The overall theme for this post is: **${theme.toUpperCase()}**.
-${getThemePrompt(theme)}
+═══════════════════════════════════════════════════════════════
+🎨 CREATIVE DIRECTION
+═══════════════════════════════════════════════════════════════
 
-**2. TYPOGRAPHY & MESSAGING:**
-- **Primary Message:** Overlay the text: "${message || 'Congratulations!'}". This text is a core design element. Place it intelligently in a natural open space (e.g., on the ground, an empty wall, the sky) where it is highly legible but does not obstruct faces, bodies, or key vehicle features (grille, logos, headlights).
-- **Call to Action (CTA):** If provided, subtly integrate the text "${ctaText}" in a less prominent location, like a lower corner. Use a smaller, simple, clean font for the CTA. It should be legible but not distracting.
+**THEME**: ${theme.toUpperCase()}
+**AI MODE**: ${mode.toUpperCase()}
+**ENHANCEMENT LEVEL**: ${enhancementLevels[enhancementLevel]}
 
-**3. BRAND INTEGRATION (LOGO):**
+${getAdvancedThemePrompt(theme, mode)}
+
+${getModeInstructions(mode)}
+
+═══════════════════════════════════════════════════════════════
+✨ TYPOGRAPHY & DESIGN ELEMENTS
+═══════════════════════════════════════════════════════════════
 `;
 
-  if (logoBase64 && logoMimeType) {
-    const positionMap: { [key in LogoPosition]: string } = {
-        'top-left': 'in the top-left corner',
-        'top-right': 'in the top-right corner',
-        'bottom-left': 'in the bottom-left corner',
-        'bottom-right': 'in the bottom-right corner',
-        'center': 'thoughtfully near the center, perhaps on the ground or a surface, ensuring it doesn\'t cover the main subjects.',
-    };
-    const positionDescription = positionMap[logoPosition] || positionMap['bottom-right'];
-    prompt += `- A dealership logo is provided. Place this logo tastefully ${positionDescription}. It should be medium-sized and unobtrusive, integrated naturally with the scene. If it helps legibility, apply a very subtle, soft drop shadow.`;
-  } else {
-    prompt += `- No logo has been provided for this image.`;
+  if (message) {
+    prompt += `
+**PRIMARY MESSAGE**: "${message}"
+- Font: ${theme === 'luxury' ? 'Elegant serif (Playfair Display style)' : 
+         theme === 'dynamic' ? 'Bold sans-serif (Montserrat ExtraBold)' :
+         theme === 'family' ? 'Friendly sans-serif (Inter)' : 
+         'Modern sans-serif (Inter/Gilroy)'}
+- Size: Large, commanding presence
+- Placement: Natural open space (ground, wall, sky) - NEVER over faces/subjects
+- Color: ${theme === 'luxury' ? 'Gold/white with elegant shadow' :
+          theme === 'dynamic' ? 'Bold white with strong contrast' :
+          theme === 'family' ? 'Warm, inviting color' :
+          'Clean white or brand color'}
+- Effect: Subtle drop shadow for depth and readability
+- Integration: Appears naturally part of the scene
+`;
   }
-  
+
+  if (ctaText) {
+    prompt += `
+**CALL-TO-ACTION**: "${ctaText}"
+- Subtle placement in lower third or corner
+- Smaller, secondary font treatment
+- Clean, professional, non-intrusive
+`;
+  }
+
+  if (logoBase64 && logoMimeType) {
+    const logoPositions: { [key in LogoPosition]: string } = {
+      'top-left': 'top-left corner with professional padding',
+      'top-right': 'top-right corner with professional padding',
+      'bottom-left': 'bottom-left corner with professional padding',
+      'bottom-right': 'bottom-right corner with professional padding',
+      'center': 'tastefully integrated near center on natural surface',
+    };
+    
+    prompt += `
+**BRAND LOGO**:
+- Position: ${logoPositions[logoPosition]}
+- Size: Professional watermark scale (medium, not dominant)
+- Treatment: Clean integration with subtle shadow if needed
+- Never obscures main subjects or key elements
+`;
+  }
+
   prompt += `
----
-**FINAL EXECUTION CHECKLIST:**
-1.  Perform a final professional color grade according to the theme.
-2.  Ensure lighting on subjects is flattering and consistent with the scene.
-3.  The final result must look like a photograph from a professional automotive photographer's portfolio.
+═══════════════════════════════════════════════════════════════
+🔧 TECHNICAL SPECIFICATIONS
+═══════════════════════════════════════════════════════════════
 
-**CRITICAL FINAL INSTRUCTION: Your output MUST be ONLY the final edited image file itself. Do not output any text, commentary, code, or explanation. Just the image.**
-  `;
+**Image Quality**:
+- Resolution: Maximum available (aim for 4K equivalent)
+- Sharpness: Tack-sharp with professional detail
+- Noise: Clinical clean or tasteful film grain only
+- Compression: Minimal, preserve maximum detail
 
-  const parts: { inlineData?: { data: string; mimeType: string; }; text?: string; }[] = [
+**Color Science**:
+- Bit depth: Maximum color accuracy
+- Profile: sRGB for social media optimization
+- Skin tones: Natural, flattering, accurate
+- Consistency: Perfect color harmony throughout
+
+**Professional Retouching**:
+- Skin: Natural texture with subtle smoothing
+- Eyes: Enhanced clarity with natural catchlights
+- Teeth: Subtle whitening if visible
+- Hair: Enhanced detail and natural shine
+- Clothing: Wrinkle reduction, perfect creases
+
+═══════════════════════════════════════════════════════════════
+✅ FINAL QUALITY ASSURANCE
+═══════════════════════════════════════════════════════════════
+
+Before output, verify:
+☑ Subject fidelity 100% preserved
+☑ Aspect ratio exactly matched
+☑ Professional color grade applied
+☑ All text perfectly legible and integrated
+☑ Logo professionally placed
+☑ Zero AI artifacts or unrealistic elements
+☑ Image looks like professional photography
+
+**CRITICAL**: Output ONLY the final enhanced image. No text, code, or explanation.
+`;
+
+  const parts: { inlineData?: { data: string; mimeType: string }; text?: string }[] = [
     { text: prompt },
     { inlineData: { data: base64ImageData, mimeType: mimeType } },
   ];
-  
+
   if (logoBase64 && logoMimeType) {
     parts.push({
       inlineData: {
@@ -157,20 +348,19 @@ ${getThemePrompt(theme)}
     });
 
     if (response?.promptFeedback?.blockReason) {
-      throw new Error(`Request blocked: ${response.promptFeedback.blockReason}. Adjust text or images.`);
+      throw new Error(`Content blocked: ${response.promptFeedback.blockReason}`);
     }
 
     const candidate = response?.candidates?.[0];
-
     if (!candidate) {
-      throw new Error("AI returned no candidates. This could be a model issue or safety filter.");
+      throw new Error("No response from AI model");
     }
 
     if (!candidate.content?.parts?.length) {
       if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-        throw new Error(`Image generation failed. Reason: ${candidate.finishReason}.`);
+        throw new Error(`Generation failed: ${candidate.finishReason}`);
       }
-      throw new Error("AI returned an empty response. This may be due to safety filters.");
+      throw new Error("Empty AI response");
     }
 
     for (const part of candidate.content.parts) {
@@ -178,13 +368,39 @@ ${getThemePrompt(theme)}
         return part.inlineData.data;
       }
     }
-    
-    throw new Error("AI response did not contain valid image data.");
+
+    throw new Error("No image data in AI response");
   } catch (error) {
-    console.error("Error during AI image enhancement:", error);
+    console.error("AI Enhancement Error:", error);
     if (error instanceof Error) {
-      throw error; 
+      throw error;
     }
-    throw new Error("An unknown error occurred during AI processing.");
+    throw new Error("Unknown AI processing error");
   }
+};
+
+/**
+ * Batch image enhancement for multiple images
+ */
+export const batchEnhanceImages = async (
+  images: Array<{ data: string; mimeType: string }>,
+  options: EnhancedAIOptions,
+  onProgress?: (completed: number, total: number) => void
+): Promise<Array<string | null>> => {
+  const results: Array<string | null> = [];
+  
+  for (let i = 0; i < images.length; i++) {
+    try {
+      const result = await enhanceImageWithAI(images[i].data, images[i].mimeType, options);
+      results.push(result);
+      if (onProgress) {
+        onProgress(i + 1, images.length);
+      }
+    } catch (error) {
+      console.error(`Error enhancing image ${i + 1}:`, error);
+      results.push(null);
+    }
+  }
+  
+  return results;
 };
