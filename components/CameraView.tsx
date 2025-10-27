@@ -4,6 +4,7 @@ import Icon from './common/Icon';
 
 interface CameraViewProps {
   onCapture: (imageDataUrl: string) => void;
+  onVideoCapture?: (videoBlob: Blob) => void;
 }
 
 interface AspectRatioGuideProps {
@@ -32,10 +33,12 @@ const AspectRatioGuide: React.FC<AspectRatioGuideProps> = ({ aspectRatio }) => {
   );
 };
 
-const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
+const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
@@ -45,6 +48,12 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
   const [flash, setFlash] = useState(false);
   const [levelAngle, setLevelAngle] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:3' | '16:9' | '9:16'>('1:1');
+  const [isVideoMode, setIsVideoMode] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [exposureCompensation, setExposureCompensation] = useState(0);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const levelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -168,6 +177,65 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
     setSelectedCameraIndex(prev => (prev + 1) % cameras.length);
   };
 
+  const startVideoRecording = useCallback(() => {
+    if (!streamRef.current) return;
+
+    recordedChunksRef.current = [];
+    const options = {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 2500000,
+    };
+
+    // Fallback if vp9 not supported
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options.mimeType = 'video/webm';
+    }
+
+    const mediaRecorder = new MediaRecorder(streamRef.current, options);
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const videoBlob = new Blob(recordedChunksRef.current, {
+        type: 'video/webm',
+      });
+      onVideoCapture?.(videoBlob);
+      setIsRecording(false);
+      setRecordingTime(0);
+    };
+
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+    setIsRecording(true);
+
+    // Start recording timer
+    recordingIntervalRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+  }, [onVideoCapture]);
+
+  const stopVideoRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  }, [isRecording]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
+
   if (error) {
     return <div className="w-full h-full flex items-center justify-center p-4 bg-red-900/50 text-center">{error}</div>;
   }
@@ -208,9 +276,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
       )}
 
       {/* Top controls */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between gap-2 bg-gradient-to-b from-black/40 to-transparent">
+      <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/40 to-transparent">
         {/* Aspect Ratio Selector */}
-        <div className="flex gap-1 bg-black/30 rounded-lg p-1 backdrop-blur-sm">
+        <div className="flex gap-1 bg-black/30 rounded-lg p-1 backdrop-blur-sm w-fit">
           {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
             <button
               key={ratio}
@@ -227,25 +295,109 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
           ))}
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-between gap-2">
           <button
-            onClick={() => setShowGrid((s) => !s)}
-            className={`p-2 rounded-lg border ${showGrid ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
-            aria-label="Toggle grid"
+            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+            className="px-2 py-1.5 text-xs font-semibold bg-black/30 hover:bg-black/50 text-white rounded-lg border border-white/20 transition-all"
+            aria-label="Toggle advanced settings"
+            title="Advanced camera settings"
           >
-            <Icon type="grid" className="w-5 h-5 text-white" />
+            ⚙️ Settings
           </button>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setShowGrid((s) => !s)}
+              className={`p-2 rounded-lg border ${showGrid ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+              aria-label="Toggle grid"
+            >
+              <Icon type="grid" className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={() => setTimerEnabled((t) => !t)}
+              className={`p-2 rounded-lg border ${timerEnabled ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+              aria-label="Toggle timer"
+              title="3s timer"
+            >
+              <Icon type="timer" className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Advanced Settings Panel */}
+        {showAdvancedSettings && (
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg p-3 border border-white/20 space-y-3">
+            {/* Exposure Compensation */}
+            <div>
+              <label className="text-xs text-white/70 font-semibold block mb-1">
+                Exposure: {exposureCompensation > 0 ? '+' : ''}{exposureCompensation}
+              </label>
+              <input
+                type="range"
+                min="-3"
+                max="3"
+                step="0.5"
+                value={exposureCompensation}
+                onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
+                className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="text-[10px] text-white/50 flex justify-between mt-1">
+                <span>Dark</span>
+                <span>Bright</span>
+              </div>
+            </div>
+
+            {/* Quick presets */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setExposureCompensation(0)}
+                className="px-2 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-all"
+                title="Reset exposure"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setExposureCompensation(-1.5)}
+                className="px-2 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-all"
+                title="Darker"
+              >
+                Dark
+              </button>
+              <button
+                onClick={() => setExposureCompensation(1.5)}
+                className="px-2 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-all"
+                title="Brighter"
+              >
+                Bright
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-4 py-2 rounded-full flex items-center gap-2 animate-pulse">
+          <div className="w-2 h-2 bg-white rounded-full"></div>
+          <span className="text-sm font-semibold">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
+        </div>
+      )}
+
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent flex justify-center items-center gap-8">
+        <div className="w-16 h-16 flex items-center justify-center">
           <button
-            onClick={() => setTimerEnabled((t) => !t)}
-            className={`p-2 rounded-lg border ${timerEnabled ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
-            aria-label="Toggle timer"
-            title="3s timer"
+            onClick={() => setIsVideoMode(!isVideoMode)}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+              isVideoMode
+                ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                : 'bg-white/10 text-white/70 border border-white/20 hover:bg-white/20'
+            }`}
+            aria-label="Toggle video mode"
+            title="Switch to video mode"
           >
-            <Icon type="timer" className="w-5 h-5 text-white" />
+            {isVideoMode ? '🎥 Video' : '📷 Photo'}
           </button>
         </div>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent flex justify-center items-center gap-8">
+
         <div className="w-16 h-16 flex items-center justify-center">
             {cameras.length > 1 && (
                 <button
@@ -258,14 +410,32 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
             )}
         </div>
 
-        <button
-          onClick={handleCapture}
-          className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full border-4 border-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 active:scale-95 transition-all duration-150 ease-in-out group hover:border-white"
-          aria-label="Take Picture"
-        >
-            <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-90 transition-transform duration-150 ease-in-out"></div>
-        </button>
-        
+        {isVideoMode ? (
+          <button
+            onClick={isRecording ? stopVideoRecording : startVideoRecording}
+            className={`w-20 h-20 backdrop-blur-sm rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-blue-500/50 active:scale-95 transition-all duration-150 ease-in-out group ${
+              isRecording
+                ? 'bg-red-500/30 border-red-500/70 hover:border-red-500'
+                : 'bg-white/20 border-white/50 hover:border-white'
+            }`}
+            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+          >
+            {isRecording ? (
+              <div className="w-full h-full rounded-full bg-red-500 scale-50 group-hover:scale-60 transition-transform duration-150 ease-in-out"></div>
+            ) : (
+              <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-90 transition-transform duration-150 ease-in-out"></div>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={handleCapture}
+            className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full border-4 border-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 active:scale-95 transition-all duration-150 ease-in-out group hover:border-white"
+            aria-label="Take Picture"
+          >
+              <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-90 transition-transform duration-150 ease-in-out"></div>
+          </button>
+        )}
+
         <div className="w-16 h-16" />
       </div>
     </div>

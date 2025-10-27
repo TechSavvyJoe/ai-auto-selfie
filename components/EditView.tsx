@@ -10,6 +10,7 @@ import { usePresets } from '../services/presetService';
 import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
+import AdjustmentPreview from './AdjustmentPreview';
 
 interface EditViewProps {
   imageSrc: string;
@@ -148,7 +149,15 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   return (
     <div className="w-full h-full flex flex-col md:flex-row bg-black overflow-hidden">
       <div className="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center bg-black p-4">
-        <img src={imageSrc} alt="Captured selfie" className="max-w-full max-h-full object-contain rounded-lg" />
+        {isAdjusted ? (
+          <AdjustmentPreview
+            originalImage={imageSrc}
+            adjustments={adjustments}
+            maxHeight="h-full"
+          />
+        ) : (
+          <img src={imageSrc} alt="Captured selfie" className="max-w-full max-h-full object-contain rounded-lg" />
+        )}
       </div>
       
       <div className="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 overflow-y-auto p-4 flex flex-col gap-4">
