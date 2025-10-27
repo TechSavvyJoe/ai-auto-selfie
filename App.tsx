@@ -1,4 +1,5 @@
 import React from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AppState } from './types';
 import { useAppContext } from './context/AppContext';
 import CameraView from './components/CameraView';
@@ -19,40 +20,93 @@ interface StartViewProps {
 
 const StartView: React.FC<StartViewProps> = ({ onStart, onViewGallery }) => (
   <div className="relative flex h-full w-full items-center justify-center overflow-hidden px-6 py-16">
+    {/* Premium animated background gradients */}
     <div
-      className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-40 blur-3xl"
-      style={{ background: theme.colors.gradients.brand }}
-      aria-hidden
+      className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-30 blur-3xl bg-gradient-aurora float"
+      aria-hidden="true"
     />
     <div
-      className="pointer-events-none absolute -bottom-48 -left-24 h-[28rem] w-[28rem] rounded-full opacity-20 blur-3xl"
-      style={{ background: theme.colors.gradients.brand }}
-      aria-hidden
+      className="pointer-events-none absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full opacity-20 blur-3xl bg-gradient-ocean float"
+      aria-hidden="true"
+    />
+    <div
+      className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl bg-gradient-primary pulse"
+      aria-hidden="true"
     />
 
-    <div className="relative z-10 flex max-w-3xl flex-col items-center gap-10 text-center">
-      <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 ring-1 ring-white/15 backdrop-blur-md">
-        <span className="inline-flex h-2 w-2 rounded-full bg-blue-300" />
-        AI-assisted social storytelling for dealerships
+    {/* Main content */}
+    <div className="relative z-10 flex max-w-4xl flex-col items-center gap-12 text-center fade-in-up">
+      {/* Premium badge */}
+      <div className="glass inline-flex items-center gap-3 rounded-full px-5 py-2.5 text-sm font-semibold text-white/90 shadow-lg">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-500"></span>
+        </span>
+        <span className="gradient-text font-bold">AI-Powered Photo Enhancement</span>
       </div>
 
-      <div className="space-y-4">
-        <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
-          Dealership Social Studio
+      {/* Hero content */}
+      <div className="space-y-6">
+        <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl md:text-7xl leading-tight">
+          <span className="block">Transform Your</span>
+          <span className="gradient-text block">Photos Instantly</span>
         </h1>
-        <p className="text-lg text-white/70 sm:text-xl">
-          Capture the delivery moment, let Gemini elevate the story, and share a premium-ready visual
-          in seconds.
+        <p className="text-xl text-white/70 sm:text-2xl max-w-2xl mx-auto leading-relaxed">
+          Professional-grade AI enhancement that makes every photo extraordinary.
+          <span className="block mt-2 text-lg text-white/50">Powered by Google Gemini</span>
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <Button onClick={onStart} variant="primary" size="large" icon={<Icon type="camera" />}>
-          Start New Post
+      {/* CTA Buttons */}
+      <div className="flex flex-col gap-4 sm:flex-row w-full sm:w-auto">
+        <Button 
+          onClick={onStart} 
+          variant="gradient" 
+          size="large" 
+          icon={
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          }
+          className="min-w-[200px]"
+        >
+          Start Creating
         </Button>
-        <Button onClick={onViewGallery} variant="secondary" size="large" icon={<Icon type="history" />}>
-          View My Gallery
+        <Button 
+          onClick={onViewGallery} 
+          variant="secondary" 
+          size="large" 
+          icon={
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          }
+          className="min-w-[200px]"
+        >
+          View Gallery
         </Button>
+      </div>
+
+      {/* Feature highlights */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8 w-full max-w-3xl">
+        {[
+          { icon: '✨', title: 'AI Enhancement', desc: 'Professional-grade processing' },
+          { icon: '🎨', title: 'Multiple Styles', desc: 'Cinematic to portrait modes' },
+          { icon: '⚡', title: 'Instant Results', desc: 'Transform in seconds' },
+        ].map((feature, idx) => {
+          const delayClass = idx === 0 ? 'anim-delay-0' : idx === 1 ? 'anim-delay-100' : 'anim-delay-200';
+          return (
+          <div 
+            key={idx} 
+            className={`glass rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:-translate-y-1 fade-in-up ${delayClass}`}
+          >
+            <div className="text-4xl mb-3">{feature.icon}</div>
+            <h3 className="text-white font-bold text-lg mb-2">{feature.title}</h3>
+            <p className="text-white/60 text-sm">{feature.desc}</p>
+          </div>
+          );
+        })}
       </div>
     </div>
   </div>
@@ -159,6 +213,7 @@ const AppContent: React.FC = () => {
       <main className={`relative flex-1 ${appState !== AppState.START ? 'pt-16' : ''}`}>
         <div className="absolute inset-0">{renderContent()}</div>
       </main>
+      <Analytics />
     </div>
   );
 };
