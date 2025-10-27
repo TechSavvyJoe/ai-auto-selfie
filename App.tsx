@@ -35,43 +35,46 @@ const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery
   <div className="relative flex h-full w-full items-center justify-center overflow-hidden px-6 py-16">
     {/* Premium animated background gradients */}
     <div
-      className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-30 blur-3xl bg-gradient-aurora float"
+      className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-20 blur-3xl animate-float"
+      style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, rgba(236,72,153,0.3) 50%, transparent 100%)' }}
       aria-hidden="true"
     />
     <div
-      className="pointer-events-none absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full opacity-20 blur-3xl bg-gradient-ocean float"
+      className="pointer-events-none absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full opacity-15 blur-3xl animate-float"
+      style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(59,130,246,0.3) 50%, transparent 100%)', animationDelay: '2s' }}
       aria-hidden="true"
     />
     <div
-      className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl bg-gradient-primary pulse"
+      className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl animate-pulse-slow"
+      style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)' }}
       aria-hidden="true"
     />
 
     {/* Main content */}
-    <div className="relative z-10 flex max-w-4xl flex-col items-center gap-12 text-center fade-in-up">
+    <div className="relative z-10 flex max-w-4xl flex-col items-center gap-12 text-center">
       {/* Premium badge */}
-      <div className="glass inline-flex items-center gap-3 rounded-full px-5 py-2.5 text-sm font-semibold text-white/90 shadow-lg">
+      <div className="glass inline-flex items-center gap-3 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-xl border border-white/20">
         <span className="relative flex h-2.5 w-2.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75"></span>
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-500"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-500 shadow-glow"></span>
         </span>
         <span className="gradient-text font-bold">AI-Powered Photo Enhancement</span>
       </div>
 
       {/* Hero content */}
-      <div className="space-y-6">
-        <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl md:text-7xl leading-tight">
-          <span className="block">Transform Your</span>
-          <span className="gradient-text block">Photos Instantly</span>
+      <div className="space-y-8">
+        <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl md:text-7xl leading-tight drop-shadow-2xl">
+          <span className="block animate-in slide-in-from-bottom duration-700">Transform Your</span>
+          <span className="gradient-text block animate-in slide-in-from-bottom duration-700" style={{ animationDelay: '100ms' }}>Photos Instantly</span>
         </h1>
-        <p className="text-xl text-white/70 sm:text-2xl max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl text-white/80 sm:text-2xl max-w-2xl mx-auto leading-relaxed animate-in fade-in duration-700" style={{ animationDelay: '200ms' }}>
           Professional-grade AI enhancement that makes every photo extraordinary.
-          <span className="block mt-2 text-lg text-white/50">Powered by Google Gemini</span>
+          <span className="block mt-3 text-base text-white/60 font-medium">⚡ Powered by Google Gemini 2.0</span>
         </p>
       </div>
 
       {/* CTA Buttons */}
-      <div className="flex flex-col gap-4 sm:flex-row w-full sm:w-auto">
+      <div className="flex flex-col gap-4 sm:flex-row w-full sm:w-auto animate-in fade-in duration-700" style={{ animationDelay: '300ms' }}>
         <Button 
           onClick={onStart} 
           variant="gradient" 
@@ -82,7 +85,7 @@ const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           }
-          className="min-w-[200px]"
+          className="min-w-[220px]"
         >
           Start Creating
         </Button>
@@ -95,31 +98,29 @@ const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           }
-          className="min-w-[200px]"
+          className="min-w-[220px]"
         >
           View Gallery
         </Button>
       </div>
 
       {/* Feature highlights */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8 w-full max-w-3xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12 w-full max-w-3xl">
         {[
           { icon: '✨', title: 'AI Enhancement', desc: 'Professional-grade processing' },
           { icon: '🎨', title: 'Multiple Styles', desc: 'Cinematic to portrait modes' },
           { icon: '⚡', title: 'Instant Results', desc: 'Transform in seconds' },
-        ].map((feature, idx) => {
-          const delayClass = idx === 0 ? 'anim-delay-0' : idx === 1 ? 'anim-delay-100' : 'anim-delay-200';
-          return (
+        ].map((feature, idx) => (
           <div 
             key={idx} 
-            className={`glass rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:-translate-y-1 fade-in-up ${delayClass}`}
+            className="glass rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:-translate-y-2 hover:shadow-glow group border border-white/10 animate-in fade-in"
+            style={{ animationDelay: `${400 + idx * 100}ms` }}
           >
-            <div className="text-4xl mb-3">{feature.icon}</div>
-            <h3 className="text-white font-bold text-lg mb-2">{feature.title}</h3>
-            <p className="text-white/60 text-sm">{feature.desc}</p>
+            <div className="text-5xl mb-4 transition-transform duration-300 group-hover:scale-110">{feature.icon}</div>
+            <h3 className="text-white font-bold text-lg mb-2 tracking-wide">{feature.title}</h3>
+            <p className="text-white/70 text-sm leading-relaxed">{feature.desc}</p>
           </div>
-          );
-        })}
+        ))}
       </div>
     </div>
   </div>
