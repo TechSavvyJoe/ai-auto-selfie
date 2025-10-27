@@ -3,6 +3,8 @@ import Button from './common/Button';
 import Icon from './common/Icon';
 import { GalleryImage } from '../types';
 import * as storage from '../services/storageService';
+import { uploadImage, isUploadConfigured } from '../services/uploadService';
+import { useAnalytics } from '../services/analyticsService';
 
 interface GalleryDetailViewProps {
   image: GalleryImage;
@@ -12,6 +14,10 @@ interface GalleryDetailViewProps {
 const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }) => {
   const [isFavorited, setIsFavorited] = useState(image.isFavorite || false);
   const [showMetadata, setShowMetadata] = useState(true);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadAvailable = isUploadConfigured();
+  const { trackFeature } = useAnalytics();
 
   const handleSave = useCallback(() => {
     const link = document.createElement('a');
@@ -159,6 +165,71 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
             <div>
               <h3 className="text-xs font-semibold text-white/60 uppercase mb-2">Message</h3>
               <p className="text-sm text-white/80 break-words">{image.message}</p>
+            </div>
+          )}
+
+          {image.autoCaption && (
+            <div>
+              <h3 className="text-xs font-semibold text-white/60 uppercase mb-2">Auto-Caption</h3>
+              <p className="text-sm text-white/80 break-words mb-2">{image.autoCaption}</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(image.autoCaption || '');
+                      trackFeature('copy_caption', { location: 'history_detail' });
+                    } catch (e) {
+                      // ignore
+                    }
+                  }}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Copy Caption
+                </Button>
+
+                {uploadAvailable && (
+                  <Button
+                    onClick={async () => {
+                      if (!uploadAvailable) return;
+                      try {
+                        setIsUploading(true);
+                        const { url } = await uploadImage(image.imageDataUrl, { fileName: `ai-auto-selfie-${image.id}.jpg` });
+                        setUploadedUrl(url);
+                        trackFeature('history_upload_share', { id: image.id });
+                        // open share links by default
+                        window.open(url, '_blank');
+                      } catch (err) {
+                        // ignore
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }}
+                    variant="primary"
+                    size="sm"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? 'Uploading...' : 'Upload & Open Link'}
+                  </Button>
+                )}
+              </div>
+              {uploadedUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input readOnly aria-label="uploaded link" title="uploaded link" value={uploadedUrl} className="flex-1 p-2 bg-neutral-900 rounded text-xs text-white" />
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(uploadedUrl);
+                        trackFeature('copy_uploaded_link', { location: 'history_detail' });
+                      } catch (e) {}
+                    }}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

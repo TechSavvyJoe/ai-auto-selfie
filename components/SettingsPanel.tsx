@@ -40,6 +40,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
     setPreferences(settingsService.getPreferences());
   };
 
+  const handleCaptionToneChange = (tone: 'friendly' | 'formal' | 'brief') => {
+    settingsService.setCaptionTone(tone);
+    setPreferences(settingsService.getPreferences());
+  };
+
+  const handleIncludeHashtagsToggle = () => {
+    settingsService.setIncludeHashtags(!preferences?.includeHashtags);
+    setPreferences(settingsService.getPreferences());
+  };
+
   const handleReset = () => {
     if (window.confirm('Reset all settings to defaults?')) {
       settingsService.resetToDefaults();
@@ -106,6 +116,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 <div className={preferences.enableAnalytics ? 'w-5 h-5 rounded-full bg-white translate-x-5 mt-0.5' : 'w-5 h-5 rounded-full bg-white translate-x-0.5 mt-0.5'} />
               </div>
             </button>
+
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-white mb-2">Caption Preferences</h3>
+              <SegmentedControl<'friendly' | 'formal' | 'brief'>
+                options={[
+                  { value: 'friendly', label: 'Friendly' },
+                  { value: 'formal', label: 'Formal' },
+                  { value: 'brief', label: 'Brief' },
+                ]}
+                value={(preferences as any).captionTone || 'friendly'}
+                onChange={handleCaptionToneChange}
+              />
+
+              <button
+                onClick={handleIncludeHashtagsToggle}
+                className="w-full mt-3 flex items-center justify-between p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <span className="text-sm text-white">Include Hashtags in Auto-Captions</span>
+                <div className={(preferences as any).includeHashtags ? 'w-10 h-6 rounded-full bg-primary-500' : 'w-10 h-6 rounded-full bg-gray-600'}>
+                  <div className={(preferences as any).includeHashtags ? 'w-5 h-5 rounded-full bg-white translate-x-5 mt-0.5' : 'w-5 h-5 rounded-full bg-white translate-x-0.5 mt-0.5'} />
+                </div>
+              </button>
+            </div>
           </div>
 
           <button

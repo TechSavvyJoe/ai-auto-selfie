@@ -45,6 +45,8 @@ export interface EditOptions {
   // Optional image adjustments (hints for AI enhancement)
   adjustments?: ImageAdjustments;
   compareMode?: boolean; // For before/after preview
+  // Optional overlays (text, stickers)
+  overlays?: OverlayItem[];
 }
 
 export interface LogoData {
@@ -57,6 +59,8 @@ export interface GalleryImage {
   imageDataUrl: string;
   thumbnail?: string; // Smaller preview for grid
   createdAt: number;
+  // AI generated caption
+  autoCaption?: string;
   // Enhancement metadata
   theme?: Theme;
   aiMode?: AIMode;
@@ -67,6 +71,7 @@ export interface GalleryImage {
   ctaText?: string;
   aspectRatio?: AspectRatio;
   logoPosition?: LogoPosition;
+  overlays?: OverlayItem[];
   // Analytics
   processingTime?: number; // milliseconds
   rating?: number; // 1-5 stars
@@ -92,6 +97,9 @@ export interface UserPreferences {
   enableTutorial: boolean;
   shortcuts: ShortcutKey[];
   enableAnalytics: boolean;
+  // Caption generation preferences
+  captionTone?: 'friendly' | 'formal' | 'brief';
+  includeHashtags?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -102,6 +110,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   enableTutorial: true,
   shortcuts: [],
   enableAnalytics: true,
+  captionTone: 'friendly',
+  includeHashtags: true,
 };
 
 // Analytics
@@ -158,3 +168,41 @@ export interface PerformanceMetrics {
   adjustmentsApplied: number;
   gpuAccelerated: boolean;
 }
+
+// Overlays
+export type OverlayPosition =
+  | 'top-left'
+  | 'top'
+  | 'top-right'
+  | 'left'
+  | 'center'
+  | 'right'
+  | 'bottom-left'
+  | 'bottom'
+  | 'bottom-right';
+
+export interface BaseOverlayItem {
+  id: string;
+  type: 'text' | 'sticker';
+  position: OverlayPosition; // anchor position on image
+  opacity?: number; // 0-1
+  rotation?: number; // degrees
+  scale?: number; // 0.1 - 5
+}
+
+export interface TextOverlay extends BaseOverlayItem {
+  type: 'text';
+  text: string;
+  color?: string; // CSS color
+  bgColor?: string; // Optional background color (for pill style)
+  fontFamily?: string;
+  fontWeight?: 'regular' | 'bold' | 'black';
+}
+
+export interface StickerOverlay extends BaseOverlayItem {
+  type: 'sticker';
+  emoji?: string; // If using emoji sticker
+  imageUrl?: string; // Optional custom sticker image
+}
+
+export type OverlayItem = TextOverlay | StickerOverlay;

@@ -3,7 +3,7 @@
  * Advanced export and sharing interface with multiple format and platform options
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Modal from './common/Modal';
 import Button from './common/Button';
 import Icon from './common/Icon';
@@ -15,12 +15,15 @@ import {
   generateShareLink,
   resizeForSocialPlatform,
 } from '../services/exportService';
+import { uploadImage, isUploadConfigured } from '../services/uploadService';
+import { useAnalytics } from '../services/analyticsService';
 
 export interface ExportDialogProps {
   isOpen: boolean;
   imageDataUrl: string;
   onClose: () => void;
   onSuccess?: () => void;
+  defaultCaption?: string;
 }
 
 type ExportTab = 'download' | 'share';
@@ -30,7 +33,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   imageDataUrl,
   onClose,
   onSuccess,
+  defaultCaption = '',
 }) => {
+  const { trackFeature } = useAnalytics();
   const [activeTab, setActiveTab] = useState<ExportTab>('download');
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('jpeg');
   const [selectedPlatform, setSelectedPlatform] = useState<
@@ -38,6 +43,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   >('instagram');
   const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState('');
+  const [caption, setCaption] = useState(defaultCaption);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploadAvailable] = useState<boolean>(() => isUploadConfigured());
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCaption(defaultCaption);
+    }
+  }, [defaultCaption, isOpen]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -80,8 +96,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const handleShare = useCallback(async () => {
     try {
       setIsExporting(true);
-      const shareUrl = generateShareLink(selectedPlatform, imageDataUrl, {
-        message: `Check out this amazing vehicle delivery! 🚗✨`,
+      const targetImage = uploadedUrl || imageDataUrl;
+      const shareUrl = generateShareLink(selectedPlatform, targetImage, {
+        message: caption || `Check out this!`,
       });
 
       if (selectedPlatform === 'instagram') {
@@ -90,6 +107,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         window.open(shareUrl, '_blank', 'width=600,height=400');
         setMessage('Opening share dialog...');
       }
+      trackFeature('open_share_link', { platform: selectedPlatform });
     } catch (error) {
       setMessage(
         `Share failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -97,7 +115,55 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     } finally {
       setIsExporting(false);
     }
-  }, [selectedPlatform, imageDataUrl]);
+  }, [selectedPlatform, imageDataUrl, caption, uploadedUrl, trackFeature]);
+
+  const handleWebShare = useCallback(async () => {
+    try {
+      setIsExporting(true);
+      const { shareViaWebShare } = await import('../services/exportService');
+      // Prefer sharing the file itself via Web Share when possible.
+      // If an uploaded public URL exists, fall back to sharing the URL as text.
+      if (uploadedUrl) {
+        await navigator.share?.({
+          title: 'AI Auto Selfie',
+          text: caption || undefined,
+          url: uploadedUrl,
+        } as any);
+      } else {
+        await shareViaWebShare(imageDataUrl, {
+          platform: selectedPlatform,
+          title: 'AI Auto Selfie',
+          message: caption || undefined,
+        });
+      }
+      setMessage('Opening device share...');
+      trackFeature('device_web_share', { platform: selectedPlatform });
+    } catch (error) {
+      setMessage(`Device share failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [imageDataUrl, caption, selectedPlatform, uploadedUrl, trackFeature]);
+
+  const handleUploadForShare = useCallback(async () => {
+    if (!uploadAvailable) {
+      setMessage('No upload provider configured.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setMessage('Uploading image...');
+      const { url } = await uploadImage(imageDataUrl, { fileName: `ai-auto-selfie-${Date.now()}.jpg` });
+      setUploadedUrl(url);
+      setMessage('Image uploaded. Public link ready.');
+      trackFeature('upload_create_share_link', { provider: 'auto' });
+    } catch (err) {
+      setMessage(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [imageDataUrl, trackFeature, uploadAvailable]);
 
   return (
     <Modal
@@ -213,6 +279,18 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         {/* Share Tab */}
         {activeTab === 'share' && (
           <div className="space-y-4">
+            {/* Caption Composer */}
+            <div>
+              <label className="block text-sm font-semibold text-white mb-2">Caption</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={3}
+                placeholder="Say something about this photo..."
+                className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded text-sm text-white focus:outline-none focus:border-primary-500"
+              />
+              <div className="text-[11px] text-neutral-400 mt-1">Tip: Add hashtags like #car #delivery</div>
+            </div>
             {/* Platform Selection */}
             <div>
               <label className="block text-sm font-semibold text-white mb-3">
@@ -225,6 +303,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     { id: 'facebook', name: 'Facebook', icon: '👥' },
                     { id: 'twitter', name: 'Twitter', icon: '𝕏' },
                     { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
+                    { id: 'whatsapp', name: 'WhatsApp', icon: '🟢' },
                   ] as const
                 ).map(({ id, name, icon }) => (
                   <button
@@ -243,16 +322,116 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               </div>
             </div>
 
+            {/* Copy helpers */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(caption || '');
+                    trackFeature('copy_caption', { location: 'export_dialog' });
+                    setCopied('caption');
+                    setTimeout(() => setCopied(null), 1500);
+                  } catch (e) {
+                    setMessage('Failed to copy caption');
+                  }
+                }}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+              >
+                {copied === 'caption' ? 'Copied Caption ✓' : 'Copy Caption'}
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const tags = (caption || '')
+                    .split(/\s+/)
+                    .filter((w) => w.startsWith('#'))
+                    .join(' ');
+                  if (!tags) {
+                    setMessage('No hashtags detected in caption');
+                    return;
+                  }
+                  try {
+                    await navigator.clipboard.writeText(tags);
+                    trackFeature('copy_hashtags', { location: 'export_dialog' });
+                    setCopied('hashtags');
+                    setTimeout(() => setCopied(null), 1500);
+                  } catch (e) {
+                    setMessage('Failed to copy hashtags');
+                  }
+                }}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+              >
+                {copied === 'hashtags' ? 'Copied Hashtags ✓' : 'Copy Hashtags'}
+              </Button>
+            </div>
+
+            {/* Upload / Create public share link (optional) */}
+            {uploadAvailable && (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleUploadForShare}
+                  variant="secondary"
+                  size="lg"
+                  disabled={isUploading || isExporting}
+                  className="w-full"
+                >
+                  {isUploading ? 'Uploading...' : uploadedUrl ? 'Re-upload / Refresh Link' : 'Create Share Link (Upload)'}
+                </Button>
+
+                {uploadedUrl && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      aria-label="Uploaded share link"
+                      title="Uploaded share link"
+                      value={uploadedUrl}
+                      className="flex-1 p-2 bg-neutral-900 rounded text-xs text-white"
+                    />
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(uploadedUrl);
+                          setMessage('Uploaded link copied!');
+                          trackFeature('copy_uploaded_link', { location: 'export_dialog' });
+                        } catch (e) {
+                          setMessage('Failed to copy link');
+                        }
+                      }}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Share Actions */}
             <Button
               onClick={handleShare}
               variant="primary"
               size="lg"
-              icon={<Icon type="share" />}
+              icon={<span className="text-lg">↗</span>}
               disabled={isExporting}
               className="w-full"
             >
               {isExporting ? 'Opening...' : 'Open Share Dialog'}
+            </Button>
+
+            <Button
+              onClick={handleWebShare}
+              variant="secondary"
+              size="lg"
+              icon={<span className="text-lg">📲</span>}
+              disabled={isExporting}
+              className="w-full"
+            >
+              Share via Device (Web Share)
             </Button>
 
             {/* Alternative Share Methods */}
@@ -260,13 +439,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               <p className="text-xs font-semibold text-neutral-400">More Options:</p>
               <Button
                 onClick={() => {
-                  // Copy share link
-                  navigator.clipboard.writeText(window.location.href);
+                  // Copy share link (prefer uploaded public URL)
+                  const link = uploadedUrl || window.location.href;
+                  navigator.clipboard.writeText(link);
                   setMessage('Share link copied!');
                 }}
                 variant="secondary"
                 size="sm"
-                icon={<Icon type="link" />}
+                icon={<span className="text-sm">🔗</span>}
                 className="w-full"
               >
                 Copy Share Link

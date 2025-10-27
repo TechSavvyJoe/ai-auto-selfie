@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS } from '../types';
+import { ImageAdjustments, OverlayItem } from '../types';
+import { composeOverlays } from '../services/overlaysService';
 import { applyAdjustmentsToImage } from '../services/adjustmentService';
 import Spinner from './common/Spinner';
 
@@ -7,12 +8,14 @@ interface AdjustmentPreviewProps {
   originalImage: string;
   adjustments: ImageAdjustments;
   maxHeight?: string;
+  overlays?: OverlayItem[];
 }
 
 const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
   originalImage,
   adjustments,
   maxHeight = 'h-96',
+  overlays = [],
 }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,22 +27,24 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
   const updatePreview = useCallback(async () => {
     setIsProcessing(true);
     try {
-      // If no adjustments, show original
-      if (
+      const noAdjustments =
         adjustments.exposure === 0 &&
         adjustments.contrast === 0 &&
         adjustments.temperature === 0 &&
         adjustments.saturation === 0 &&
-        adjustments.sharpen === 0
-      ) {
-        setPreviewImage(originalImage);
-        setError(null);
-        setIsProcessing(false);
-        return;
-      }
+        adjustments.sharpen === 0;
 
-      const adjusted = await applyAdjustmentsToImage(originalImage, adjustments);
-      setPreviewImage(adjusted);
+      // Determine base image (adjusted or original)
+      const base = noAdjustments
+        ? originalImage
+        : await applyAdjustmentsToImage(originalImage, adjustments);
+
+      // Apply overlays if present
+      const finalImage = overlays && overlays.length > 0
+        ? await composeOverlays(base, overlays)
+        : base;
+
+      setPreviewImage(finalImage);
       setError(null);
     } catch (err) {
       setError('Failed to preview adjustments');
@@ -47,7 +52,7 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [originalImage, adjustments]);
+  }, [originalImage, adjustments, overlays]);
 
   // Debounce updates (250ms)
   useEffect(() => {
@@ -65,7 +70,7 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
         clearTimeout(previewTimeoutRef.current);
       }
     };
-  }, [adjustments, updatePreview]);
+  }, [adjustments, overlays, updatePreview]);
 
   // Cleanup on unmount
   useEffect(() => {

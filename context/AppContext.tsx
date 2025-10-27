@@ -5,7 +5,9 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { AppState, EditOptions, GalleryImage } from '../types';
-import { enhanceImageWithAI } from '../services/geminiService';
+import { composeOverlays } from '../services/overlaysService';
+import { enhanceImageWithAI, generateCaptionFromImage } from '../services/geminiService';
+import { getSettingsService } from '../services/settingsService';
 import { dataUrlToBase64 } from '../utils/imageUtils';
 import * as storage from '../services/storageService';
 
@@ -14,6 +16,7 @@ export interface AppContextType {
   appState: AppState;
   originalImage: string | null;
   enhancedImage: string | null;
+  autoCaption: string | null;
   gallery: GalleryImage[];
   selectedGalleryImage: GalleryImage | null;
   isLoading: boolean;
@@ -49,6 +52,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [appState, setAppState] = useState<AppState>(AppState.START);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
+  const [autoCaption, setAutoCaption] = useState<string | null>(null);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState<GalleryImage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -74,6 +78,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppState(AppState.START);
     setOriginalImage(null);
     setEnhancedImage(null);
+    setAutoCaption(null);
     setError(null);
     setIsLoading(false);
     setSelectedGalleryImage(null);
@@ -83,6 +88,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppState(AppState.CAMERA);
     setOriginalImage(null);
     setEnhancedImage(null);
+    setAutoCaption(null);
     setError(null);
     setIsLoading(false);
     setSelectedGalleryImage(null);
@@ -139,16 +145,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLoadingMessage(loadingMessages[msgIndex]);
       }, 2500);
 
-      const base64Image = dataUrlToBase64(originalImage);
-      const enhancedBase64 = await enhanceImageWithAI(base64Image, 'image/jpeg', options);
+  const base64Image = dataUrlToBase64(originalImage);
+  const enhancedBase64 = await enhanceImageWithAI(base64Image, 'image/jpeg', options);
 
       if (enhancedBase64) {
-        const newImageUrl = `data:image/jpeg;base64,${enhancedBase64}`;
+        let newImageUrl = `data:image/jpeg;base64,${enhancedBase64}`;
+        // Apply overlays client-side after AI enhancement if provided
+        if (options.overlays && options.overlays.length > 0) {
+          try {
+            newImageUrl = await composeOverlays(newImageUrl, options.overlays);
+          } catch (e) {
+            console.warn('Failed to compose overlays, using AI result only.', e);
+          }
+        }
         const processingTime = Date.now() - startTime;
         setEnhancedImage(newImageUrl);
+
+        // Generate an auto-caption from the final image (with overlays if any)
+        let caption: string | null = null;
+        try {
+          const base64Out = newImageUrl.split(',')[1] || '';
+          if (base64Out) {
+            const settingsService = getSettingsService();
+            const tone = settingsService.getCaptionTone();
+            const includeHashtags = settingsService.isIncludeHashtagsEnabled();
+            // Map user-facing tone to generator-supported tone values
+            const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' =
+              tone === 'formal' ? 'professional' : tone === 'friendly' ? 'friendly' : 'friendly';
+            const maxWords = tone === 'brief' ? 10 : 32;
+            caption = await generateCaptionFromImage(base64Out, 'image/jpeg', {
+              tone: generatorTone,
+              includeHashtags,
+              maxWords,
+            });
+            setAutoCaption(caption);
+          }
+        } catch (e) {
+          console.warn('Caption generation failed, continuing without caption.', e);
+        }
+
         const updatedGallery = storage.addToHistory(newImageUrl, {
           ...options,
           processingTime,
+          autoCaption: caption || undefined,
         });
         setGallery(updatedGallery);
         setAppState(AppState.RESULT);
@@ -198,6 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     appState,
     originalImage,
     enhancedImage,
+    autoCaption,
     gallery,
     selectedGalleryImage,
     isLoading,

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Button from './common/Button';
 import Icon from './common/Icon';
 // FIX: Import LogoData to fix type error.
-import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS } from '../types';
+import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS, OverlayItem } from '../types';
 import { fileToBase64 } from '../utils/imageUtils';
 import { generateInspirationalMessage } from '../services/geminiService';
 import * as storage from '../services/storageService';
@@ -11,6 +11,7 @@ import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
 import AdjustmentPreview from './AdjustmentPreview';
+import OverlaysPanel from './OverlaysPanel';
 import AutoEnhancePanel from './AutoEnhancePanel';
 
 interface EditViewProps {
@@ -46,6 +47,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [showPresets, setShowPresets] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
+  const [overlays, setOverlays] = useState<OverlayItem[]>([]);
 
   useEffect(() => {
     const savedLogo = storage.getLogo();
@@ -137,8 +139,9 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       enhancementLevel,
       adjustments: isAdjusted ? adjustments : undefined,
       compareMode: compareMode ? true : undefined,
+      overlays: overlays.length > 0 ? overlays : undefined,
     });
-  }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted]);
+  }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted, overlays]);
   
   const ControlGroup: React.FC<{title: string; children: React.ReactNode; className?: string}> = ({title, children, className}) => (
     <div className={`flex flex-col gap-3 p-4 bg-gray-800/50 rounded-xl shadow-md ${className}`}>
@@ -150,10 +153,11 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   return (
     <div className="w-full h-full flex flex-col md:flex-row bg-black overflow-hidden">
       <div className="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center bg-black p-4">
-        {isAdjusted ? (
+        {isAdjusted || overlays.length > 0 ? (
           <AdjustmentPreview
             originalImage={imageSrc}
             adjustments={adjustments}
+            overlays={overlays}
             maxHeight="h-full"
           />
         ) : (
@@ -237,6 +241,10 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                     </div>
                 </div>
             </div>
+        </ControlGroup>
+
+        <ControlGroup title="Text & Stickers">
+          <OverlaysPanel overlays={overlays} onChange={setOverlays} />
         </ControlGroup>
 
         <ControlGroup title="Professional Adjustments">

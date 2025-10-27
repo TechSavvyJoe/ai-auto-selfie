@@ -200,6 +200,54 @@ export const generateInspirationalMessage = async (theme: Theme): Promise<string
 };
 
 /**
+ * Analyze an image and generate a short, platform-ready caption
+ */
+export const generateCaptionFromImage = async (
+  base64ImageData: string,
+  mimeType: string,
+  options?: {
+    tone?: 'friendly' | 'professional' | 'fun' | 'luxury';
+    includeHashtags?: boolean;
+    maxWords?: number; // default 14-20 words
+  }
+): Promise<string> => {
+  const tone = options?.tone || 'friendly';
+  const includeHashtags = options?.includeHashtags ?? true;
+  const maxWords = options?.maxWords ?? 18;
+
+  const prompt = `You are a world-class social media copywriter.
+Analyze the attached photo and write ONE short caption that fits the content.
+Constraints:
+- ${maxWords} words maximum
+- Tone: ${tone}
+- Be specific to what’s in the image (subjects, mood, setting)
+- Avoid quotes and emojis in the main sentence
+- ${includeHashtags ? 'Append 2-4 relevant, concise hashtags (no spaces in tags)' : 'No hashtags'}
+Output only the caption line (and hashtags if requested).`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { text: prompt },
+          { inlineData: { data: base64ImageData, mimeType } },
+        ],
+      },
+    });
+
+    const text = (response as any)?.text || (response as any)?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join(' ');
+    if (!text || typeof text !== 'string') {
+      return 'Sharing the moment';
+    }
+    return text.trim();
+  } catch (error) {
+    console.error('Caption generation failed:', error);
+    return 'Sharing the moment';
+  }
+};
+
+/**
  * Premium AI Image Enhancement
  */
 export const enhanceImageWithAI = async (

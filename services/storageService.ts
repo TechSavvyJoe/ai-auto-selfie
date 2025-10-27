@@ -38,7 +38,10 @@ export const getHistory = (): GalleryImage[] => {
 /**
  * Add image to history with metadata from EditOptions
  */
-export const addToHistory = (imageDataUrl: string, options?: EditOptions & { processingTime?: number }): GalleryImage[] => {
+export const addToHistory = (
+  imageDataUrl: string,
+  options?: EditOptions & { processingTime?: number; autoCaption?: string }
+): GalleryImage[] => {
   const currentHistory = getHistory();
 
   // Generate thumbnail (smaller base64) for faster loading
@@ -49,6 +52,7 @@ export const addToHistory = (imageDataUrl: string, options?: EditOptions & { pro
     imageDataUrl,
     thumbnail,
     createdAt: Date.now(),
+    autoCaption: (options as any)?.autoCaption,
     theme: options?.theme,
     aiMode: options?.aiMode,
     enhancementLevel: options?.enhancementLevel,
@@ -57,6 +61,7 @@ export const addToHistory = (imageDataUrl: string, options?: EditOptions & { pro
     ctaText: options?.ctaText,
     aspectRatio: options?.aspectRatio,
     logoPosition: options?.logoPosition,
+    overlays: options?.overlays,
     processingTime: options?.processingTime,
   };
 

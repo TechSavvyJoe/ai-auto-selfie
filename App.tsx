@@ -1,6 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
-import { AppState } from './types';
+import { AppState, AIMode } from './types';
 import { useAppContext } from './context/AppContext';
 import Spinner from './components/common/Spinner';
 import Header from './components/common/Header';
@@ -10,18 +10,21 @@ import { getShortcutsService } from './services/shortcutsService';
 import { getAnalyticsService } from './services/analyticsService';
 import { getTutorialService } from './services/tutorialService';
 import { theme } from './design/theme';
+import { useDesktopDetection } from './hooks/useDesktopDetection';
 
 // Lazy-load heavy components for code-splitting
 const CameraView = lazy(() => import('./components/CameraView'));
 const EditView = lazy(() => import('./components/EditView'));
 const ResultView = lazy(() => import('./components/ResultView'));
 const GalleryView = lazy(() => import('./components/HistoryView'));
+const DesktopGalleryView = lazy(() => import('./components/DesktopGalleryView'));
 const GalleryDetailView = lazy(() => import('./components/HistoryDetailView'));
 const ShortcutsHelpDialog = lazy(() => import('./components/ShortcutsHelpDialog'));
 const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
 const BatchEnhancePanel = lazy(() => import('./components/BatchEnhancePanel'));
+const DesktopStartView = lazy(() => import('./components/DesktopStartView'));
 
 interface StartViewProps {
   onStart: () => void;
@@ -130,6 +133,9 @@ const AppContent: React.FC = () => {
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [showBatchEnhancePanel, setShowBatchEnhancePanel] = useState(false);
 
+  // Detect if user is on desktop browser
+  const isDesktop = useDesktopDetection();
+
   const {
     appState,
     originalImage,
@@ -192,10 +198,40 @@ const AppContent: React.FC = () => {
     };
   }, [appState, goHome, viewGallery, startNewPost]);
 
+  // Calculate gallery stats for desktop view
+  const galleryStats = useMemo(() => {
+    const totalImages = gallery.length;
+    const favoriteCount = gallery.filter(img => img.isFavorite).length;
+    const modeOptions: AIMode[] = ['professional', 'cinematic', 'portrait', 'creative', 'natural'];
+    const modeUsage = modeOptions.map(mode => [mode, gallery.filter(img => img.aiMode === mode).length] as [string, number])
+      .sort(([, a], [, b]) => b - a);
+    const mostUsedMode = modeUsage[0]?.[0] || 'None';
+    const totalStorageEstimate = gallery.length > 0
+      ? (gallery.reduce((sum, img) => sum + img.imageDataUrl.length, 0) / (1024 * 1024)).toFixed(2)
+      : '0';
+
+    return {
+      totalImages,
+      favoriteCount,
+      mostUsedMode,
+      totalStorageEstimate,
+    };
+  }, [gallery]);
+
   const renderContent = () => {
     switch (appState) {
       case AppState.START:
-        return <StartView onStart={startNewPost} onViewGallery={viewGallery} />;
+        return isDesktop ? (
+          <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
+            <DesktopStartView
+              onStart={startNewPost}
+              onViewGallery={viewGallery}
+              galleryStats={galleryStats}
+            />
+          </Suspense>
+        ) : (
+          <StartView onStart={startNewPost} onViewGallery={viewGallery} />
+        );
       case AppState.CAMERA:
         return (
           <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
@@ -226,11 +262,20 @@ const AppContent: React.FC = () => {
       case AppState.GALLERY:
         return (
             <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
-          <GalleryView
-            gallery={gallery}
-            onSelectImage={selectGalleryImage}
-            onClearGallery={clearGallery}
-          />
+          {isDesktop ? (
+            <DesktopGalleryView
+              gallery={gallery}
+              onSelectImage={selectGalleryImage}
+              onClearGallery={clearGallery}
+              onDeleteImage={deleteGalleryImage}
+            />
+          ) : (
+            <GalleryView
+              gallery={gallery}
+              onSelectImage={selectGalleryImage}
+              onClearGallery={clearGallery}
+            />
+          )}
             </Suspense>
         );
       case AppState.GALLERY_DETAIL:

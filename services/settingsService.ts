@@ -109,6 +109,25 @@ class SettingsService {
     this.savePreferences();
   }
 
+  // Caption preferences
+  getCaptionTone(): 'friendly' | 'formal' | 'brief' {
+    return (this.preferences as any).captionTone || 'friendly';
+  }
+
+  setCaptionTone(tone: 'friendly' | 'formal' | 'brief'): void {
+    (this.preferences as any).captionTone = tone;
+    this.savePreferences();
+  }
+
+  isIncludeHashtagsEnabled(): boolean {
+    return Boolean((this.preferences as any).includeHashtags ?? true);
+  }
+
+  setIncludeHashtags(enabled: boolean): void {
+    (this.preferences as any).includeHashtags = enabled;
+    this.savePreferences();
+  }
+
   // Shortcut management
   updateShortcut(id: string, keys: string[]): void {
     const shortcut = this.preferences.shortcuts.find(s => s.id === id);
