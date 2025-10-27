@@ -9,7 +9,9 @@
 
 **Transform your photos with professional-grade AI enhancement**
 
-[Live Demo](https://ai-auto-selfie-6neheoye0-joes-projects-01f07834.vercel.app) • [Documentation](#features) • [Getting Started](#getting-started)
+[Live Demo](https://ai-auto-selfie-6neheoye0-joes-projects-01f07834.vercel.app) • [Documentation](#features) • [Deploy to Vercel](#-deploy-to-vercel)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTechSavvyJoe%2Fai-auto-selfie&env=API_KEY&envDescription=Required%20API%20keys%20for%20AI%20enhancement%20and%20upload%20features&envLink=https%3A%2F%2Fgithub.com%2FTechSavvyJoe%2Fai-auto-selfie%2Fblob%2Fmaster%2FDEPLOYMENT_UPLOAD_PROXY.md&project-name=ai-auto-selfie&repository-name=ai-auto-selfie)
 
 </div>
 
@@ -155,9 +157,38 @@ ai-auto-selfie/
 
 ### Environment Variables
 
+**Required:**
 ```env
-VITE_GEMINI_API_KEY=your_gemini_api_key
+API_KEY=your_gemini_api_key
 ```
+
+**Optional (for upload features):**
+```env
+IMGBB_API_KEY=your_imgbb_key
+VERCEL_BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+VITE_UPLOAD_PROXY_URL=/api/upload
+```
+
+See [DEPLOYMENT_UPLOAD_PROXY.md](./DEPLOYMENT_UPLOAD_PROXY.md) for secure upload configuration.
+
+---
+
+## 🚢 Deploy to Vercel
+
+Click the button below to deploy your own instance:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTechSavvyJoe%2Fai-auto-selfie&env=API_KEY&envDescription=Required%20API%20keys%20for%20AI%20enhancement%20and%20upload%20features&envLink=https%3A%2F%2Fgithub.com%2FTechSavvyJoe%2Fai-auto-selfie%2Fblob%2Fmaster%2FDEPLOYMENT_UPLOAD_PROXY.md&project-name=ai-auto-selfie&repository-name=ai-auto-selfie)
+
+**What you need:**
+1. Google Gemini API key ([get one here](https://aistudio.google.com/app/apikey))
+2. (Optional) IMGBB API key for uploads ([get one here](https://api.imgbb.com/))
+
+**Post-deploy:**
+- Your app will be live at `your-project.vercel.app`
+- Configure environment variables in Vercel dashboard
+- The serverless upload proxy at `/api/upload` will be automatically deployed
+
+See [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md) for detailed deployment instructions.
 
 ### Customization
 
