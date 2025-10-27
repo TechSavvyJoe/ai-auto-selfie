@@ -72,4 +72,89 @@ export interface GalleryImage {
   rating?: number; // 1-5 stars
   isFavorite?: boolean;
   tags?: string[];
+  // Auto-enhance metadata
+  enhanceStrategy?: string;
+  enhanceConfidence?: number;
+}
+
+// Settings & Preferences
+export interface ShortcutKey {
+  id: string;
+  keys: string[];
+  enabled: boolean;
+}
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  defaultAIMode: AIMode;
+  defaultEnhancementLevel: EnhancementLevel;
+  enableAutoSuggest: boolean;
+  enableTutorial: boolean;
+  shortcuts: ShortcutKey[];
+  enableAnalytics: boolean;
+}
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  theme: 'dark',
+  defaultAIMode: 'professional',
+  defaultEnhancementLevel: 'moderate',
+  enableAutoSuggest: true,
+  enableTutorial: true,
+  shortcuts: [],
+  enableAnalytics: true,
+};
+
+// Analytics
+export interface AnalyticsMetrics {
+  totalPhotos: number;
+  totalEnhancements: number;
+  averageProcessingTime: number;
+  mostUsedAIMode: AIMode | null;
+  mostUsedTheme: Theme | null;
+  mostUsedEnhanceStrategy: string | null;
+  strategyUsage: Record<string, number>;
+  aiModeUsage: Record<AIMode, number>;
+  themeUsage: Record<Theme, number>;
+  averageRating: number;
+  sessionCount: number;
+  lastSessionDate: number;
+}
+
+export interface AnalyticsEvent {
+  id: string;
+  type: 'photo_captured' | 'enhancement_applied' | 'preset_used' | 'shortcut_used' | 'strategy_used' | 'rating_given';
+  timestamp: number;
+  metadata: Record<string, any>;
+}
+
+// Tutorial System
+export type TutorialStep = 'welcome' | 'camera' | 'editing' | 'ai-modes' | 'shortcuts' | 'presets' | 'gallery' | 'complete';
+
+export interface TutorialState {
+  isActive: boolean;
+  currentStep: TutorialStep;
+  completedSteps: TutorialStep[];
+  shouldShowIntroduction: boolean;
+}
+
+// Batch Processing
+export interface BatchJob {
+  id: string;
+  imageIds: string[];
+  strategy: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number; // 0-100
+  results: string[]; // Enhanced image data URLs
+  startedAt: number;
+  completedAt?: number;
+}
+
+// Performance Metrics
+export interface PerformanceMetrics {
+  imageProcessingTime: number; // milliseconds
+  enhancementTime: number; // milliseconds
+  totalTime: number; // milliseconds
+  imageSizeMB: number;
+  adjustmentsApplied: number;
+  gpuAccelerated: boolean;
 }

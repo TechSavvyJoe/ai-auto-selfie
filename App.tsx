@@ -12,7 +12,13 @@ import Header from './components/common/Header';
 import Button from './components/common/Button';
 import Icon from './components/common/Icon';
 import ShortcutsHelpDialog from './components/ShortcutsHelpDialog';
+import SettingsPanel from './components/SettingsPanel';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import TutorialOverlay from './components/TutorialOverlay';
+import BatchEnhancePanel from './components/BatchEnhancePanel';
 import { getShortcutsService } from './services/shortcutsService';
+import { getAnalyticsService } from './services/analyticsService';
+import { getTutorialService } from './services/tutorialService';
 import { theme } from './design/theme';
 
 interface StartViewProps {
@@ -118,6 +124,9 @@ StartView.displayName = 'StartView';
 
 const AppContent: React.FC = () => {
   const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
+  const [showBatchEnhancePanel, setShowBatchEnhancePanel] = useState(false);
 
   const {
     appState,
@@ -153,6 +162,9 @@ const AppContent: React.FC = () => {
           break;
         case 'escape':
           setShowShortcutsDialog(false);
+          setShowSettingsPanel(false);
+          setShowAnalyticsDashboard(false);
+          setShowBatchEnhancePanel(false);
           if (appState !== AppState.GALLERY && appState !== AppState.START) {
             goHome();
           }
@@ -259,6 +271,15 @@ const AppContent: React.FC = () => {
       </main>
 
       <ShortcutsHelpDialog isOpen={showShortcutsDialog} onClose={() => setShowShortcutsDialog(false)} />
+      <SettingsPanel isOpen={showSettingsPanel} onClose={() => setShowSettingsPanel(false)} />
+      <AnalyticsDashboard isOpen={showAnalyticsDashboard} onClose={() => setShowAnalyticsDashboard(false)} />
+      {showBatchEnhancePanel && (
+        <BatchEnhancePanel
+          imageIds={gallery.map(img => img.id)}
+          onClose={() => setShowBatchEnhancePanel(false)}
+        />
+      )}
+      <TutorialOverlay enabled={getTutorialService().shouldShowIntroduction()} />
 
       <Analytics />
     </div>
