@@ -15,7 +15,7 @@ A modern, production-ready web application that helps dealership salespeople cre
 - npm or yarn
 - Google Gemini API key ([Get one free](https://aistudio.google.com/app/apikey))
 
-### Setup
+### Setup & Deploy
 ```bash
 # Install dependencies
 npm install
@@ -29,6 +29,8 @@ npm run dev
 
 # Open http://localhost:3000
 ```
+
+**Ready to deploy?** See [QUICK_DEPLOY.md](./QUICK_DEPLOY.md) for 10-minute setup (GitHub + Vercel)
 
 ### First Test (10 minutes)
 Follow [START_HERE.md](./START_HERE.md) for a step-by-step verification of all features:
@@ -45,14 +47,17 @@ Follow [START_HERE.md](./START_HERE.md) for a step-by-step verification of all f
 
 | Document | Purpose |
 |----------|---------|
-| [START_HERE.md](./START_HERE.md) | **START HERE** - 2-week execution timeline |
-| [NEXT_STEPS.md](./NEXT_STEPS.md) | Detailed action plan for integration & deployment |
+| [QUICK_DEPLOY.md](./QUICK_DEPLOY.md) | ⚡ **Deploy in 10 min** (GitHub + Vercel) |
+| [START_HERE.md](./START_HERE.md) | 2-week execution timeline |
+| [NEXT_STEPS.md](./NEXT_STEPS.md) | Detailed action plan for integration & testing |
+| [GITHUB_SETUP.md](./GITHUB_SETUP.md) | Step-by-step GitHub repository setup |
+| [VERCEL_SETUP.md](./VERCEL_SETUP.md) | Step-by-step Vercel deployment |
 | [ADVANCED_FEATURES.md](./ADVANCED_FEATURES.md) | Enterprise features guide |
 | [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) | How to use each service |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System design & organization |
 | [DEV_NOTES.md](./DEV_NOTES.md) | Best practices & patterns |
 | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Quick lookup for common tasks |
-| [DEPLOY_TO_VERCEL.md](./DEPLOY_TO_VERCEL.md) | Deployment guide |
+| [DEPLOY_TO_VERCEL.md](./DEPLOY_TO_VERCEL.md) | Advanced deployment guide |
 | [PERFORMANCE_GUIDE.md](./PERFORMANCE_GUIDE.md) | Optimization reference |
 | [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md) | Pre-launch verification |
 
@@ -247,18 +252,20 @@ src/
 
 ---
 
-## 🚀 Deploy to Vercel
+## 🚀 Deploy to Production
+
+**Quick Deploy (10 min):** See [QUICK_DEPLOY.md](./QUICK_DEPLOY.md)
+
+**Full Setup:**
+1. Push to GitHub: See [GITHUB_SETUP.md](./GITHUB_SETUP.md)
+2. Deploy on Vercel: See [VERCEL_SETUP.md](./VERCEL_SETUP.md)
+3. Verify all features work
+4. Auto-deploys on every git push
 
 ```bash
-# 1. Create vercel account (vercel.com)
-# 2. Connect GitHub repository
-# 3. Set VITE_GEMINI_API_KEY in Vercel dashboard
-# 4. Deploy - auto-deploys on git push
-
-vercel --prod   # Deploy production
+# After setup, deploy with a git push
+git push origin main
 ```
-
-See [DEPLOY_TO_VERCEL.md](./DEPLOY_TO_VERCEL.md) for details.
 
 ---
 
