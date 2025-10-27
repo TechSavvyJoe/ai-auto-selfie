@@ -13,6 +13,12 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
+  const [showGrid, setShowGrid] = useState(true);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [flash, setFlash] = useState(false);
+  const [levelAngle, setLevelAngle] = useState(0);
+  const levelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getDevices = async () => {
@@ -34,6 +40,17 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
       }
     };
     getDevices();
+  }, []);
+
+  // Device orientation (horizon level) if available
+  useEffect(() => {
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const gamma = event.gamma || 0; // left-right tilt in degrees (-90 to 90)
+      const clamped = Math.max(-15, Math.min(15, gamma));
+      setLevelAngle(clamped);
+    };
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, []);
 
   useEffect(() => {
@@ -74,7 +91,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
     };
   }, [cameras, selectedCameraIndex]);
 
-  const handleCapture = useCallback(() => {
+  const doCapture = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (video && canvas) {
@@ -96,6 +113,29 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
       }
     }
   }, [onCapture]);
+
+  const handleCapture = useCallback(() => {
+    if (timerEnabled) {
+      setCountdown(3);
+      let current = 3;
+      const interval = window.setInterval(() => {
+        current -= 1;
+        if (current <= 0) {
+          window.clearInterval(interval);
+          setCountdown(null);
+          setFlash(true);
+          setTimeout(() => setFlash(false), 120);
+          doCapture();
+        } else {
+          setCountdown(current);
+        }
+      }, 1000);
+      return;
+    }
+    setFlash(true);
+    setTimeout(() => setFlash(false), 120);
+    doCapture();
+  }, [timerEnabled, doCapture]);
   
   const handleSwitchCamera = () => {
     setSelectedCameraIndex(prev => (prev + 1) % cameras.length);
@@ -107,6 +147,13 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
 
   // Determine if camera feed should be mirrored. Typically, 'user' (front) facing cameras are mirrored.
   const isFrontCamera = cameras[selectedCameraIndex]?.label.toLowerCase().includes('front');
+
+  // Update level indicator transform without inline JSX styles
+  useEffect(() => {
+    if (levelRef.current) {
+      levelRef.current.style.transform = `translate(-50%, -50%) rotate(${levelAngle}deg)`;
+    }
+  }, [levelAngle]);
   
   return (
     <div className="w-full h-full relative bg-black">
@@ -115,10 +162,38 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture }) => {
         autoPlay
         playsInline
         muted
-        className="w-full h-full object-cover"
-        style={{ transform: isFrontCamera ? 'scaleX(-1)' : 'scaleX(1)' }}
+        className={`w-full h-full object-cover ${isFrontCamera ? 'mirror-x' : ''}`}
       />
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Overlays */}
+      {showGrid && <div className="grid-overlay-3x3" aria-hidden="true" />}
+      <div ref={levelRef} className="level-indicator" aria-hidden="true" />
+      {flash && <div className="absolute inset-0 bg-white/70" aria-hidden="true" />}
+      {countdown !== null && (
+        <div className="absolute inset-0 flex items-center justify-center text-white text-7xl font-black bg-black/20">
+          {countdown}
+        </div>
+      )}
+
+      {/* Top controls */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-end gap-2 bg-gradient-to-b from-black/40 to-transparent">
+        <button
+          onClick={() => setShowGrid((s) => !s)}
+          className={`p-2 rounded-lg border ${showGrid ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+          aria-label="Toggle grid"
+        >
+          <Icon type="grid" className="w-5 h-5 text-white" />
+        </button>
+        <button
+          onClick={() => setTimerEnabled((t) => !t)}
+          className={`p-2 rounded-lg border ${timerEnabled ? 'bg-white/20 border-white/50' : 'bg-white/10 border-white/30'} hover:bg-white/20`}
+          aria-label="Toggle timer"
+          title="3s timer"
+        >
+          <Icon type="timer" className="w-5 h-5 text-white" />
+        </button>
+      </div>
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent flex justify-center items-center gap-8">
         <div className="w-16 h-16 flex items-center justify-center">
             {cameras.length > 1 && (

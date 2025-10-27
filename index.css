@@ -227,6 +227,34 @@ body {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
 }
 
+/* Camera 3x3 grid overlay */
+.grid-overlay-3x3 {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px);
+  background-size: calc(100%/3) calc(100%/3);
+  pointer-events: none;
+}
+
+/* Horizon level indicator */
+.level-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  height: 2px;
+  background: rgba(255,255,255,0.5);
+  transform: translate(-50%, -50%) rotate(0deg);
+  transform-origin: center;
+  border-radius: 9999px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.4);
+}
+
+/* Mirror utility for front camera */
+.mirror-x { transform: scaleX(-1); }
+
 /* Animation delay helpers for staggered reveals */
 .anim-delay-0 { animation-delay: 0ms; }
 .anim-delay-100 { animation-delay: 100ms; }

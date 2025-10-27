@@ -14,7 +14,12 @@ interface IconProps {
     | 'switchCamera'
     | 'alert'
     | 'redo'
-    | 'refresh';
+    | 'refresh'
+    | 'arrowLeft'
+    | 'images'
+    | 'grid'
+    | 'timer'
+    | 'flash';
   className?: string;
 }
 
@@ -84,6 +89,33 @@ const Icon: React.FC<IconProps> = ({ type, className = 'w-6 h-6' }) => {
     refresh: (
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M16.32 6.16 21 6m0-3v3h-3.75m-10.57 3.87a4.5 4.5 0 0 1 7.67-1.62L21 13.5m0 0h-3.75M21 13.5V17m-4.32 3.84L12 18.75m0 0H8.25M12 18.75V15m-7 1.5a4.5 4.5 0 0 1-1-7.5" />
+      </svg>
+    ),
+    arrowLeft: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+      </svg>
+    ),
+    images: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75h10.5A2.25 2.25 0 0 1 21 6v10.5A2.25 2.25 0 0 1 18.75 18.75H8.25A2.25 2.25 0 0 1 6 16.5V6A2.25 2.25 0 0 1 8.25 3.75Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 7.5v10.5A2.25 2.25 0 0 0 6 20.25h10.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 12.75l1.5 1.5 3-3 3.75 3.75" />
+      </svg>
+    ),
+    grid: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25h18M3 15.75h18M8.25 3v18M15.75 3v18" />
+      </svg>
+    ),
+    timer: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v4.5l3 1.5M9 3.75h6m4.5 8.25a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />
+      </svg>
+    ),
+    flash: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}>
+        <path d="M7 2h10l-6 9h6l-10 11 3.5-9H7z" />
       </svg>
     ),
   };
