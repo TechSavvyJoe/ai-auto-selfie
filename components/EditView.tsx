@@ -11,6 +11,7 @@ import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
 import AdjustmentPreview from './AdjustmentPreview';
+import AutoEnhancePanel from './AutoEnhancePanel';
 
 interface EditViewProps {
   imageSrc: string;
@@ -315,6 +316,15 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
               )}
             </div>
           )}
+        </ControlGroup>
+
+        <ControlGroup title="Auto Enhancement">
+          <AutoEnhancePanel
+            imageSrc={imageSrc}
+            onApplyEnhancement={(adjustments, strategy, level) => {
+              setAdjustments(adjustments);
+            }}
+          />
         </ControlGroup>
 
         <ControlGroup title="Quick Presets">

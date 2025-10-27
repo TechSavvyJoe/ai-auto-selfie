@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { AppState } from './types';
 import { useAppContext } from './context/AppContext';
@@ -11,6 +11,8 @@ import Spinner from './components/common/Spinner';
 import Header from './components/common/Header';
 import Button from './components/common/Button';
 import Icon from './components/common/Icon';
+import ShortcutsHelpDialog from './components/ShortcutsHelpDialog';
+import { getShortcutsService } from './services/shortcutsService';
 import { theme } from './design/theme';
 
 interface StartViewProps {
@@ -115,6 +117,8 @@ const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery
 StartView.displayName = 'StartView';
 
 const AppContent: React.FC = () => {
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
+
   const {
     appState,
     originalImage,
@@ -136,6 +140,43 @@ const AppContent: React.FC = () => {
     clearGallery,
     clearError,
   } = useAppContext();
+
+  // Initialize keyboard shortcuts and register handlers
+  useEffect(() => {
+    const shortcutsService = getShortcutsService();
+
+    // Register action handlers for shortcuts
+    const unsubscribe = shortcutsService.onShortcutExecuted((shortcut) => {
+      switch (shortcut.id) {
+        case 'help':
+          setShowShortcutsDialog(true);
+          break;
+        case 'escape':
+          setShowShortcutsDialog(false);
+          if (appState !== AppState.GALLERY && appState !== AppState.START) {
+            goHome();
+          }
+          break;
+        case 'gallery':
+          viewGallery();
+          break;
+        case 'camera':
+          startNewPost();
+          break;
+        default:
+          // Other shortcuts can be handled by their respective components
+          break;
+      }
+    });
+
+    // Attach global key listener
+    shortcutsService.attachKeyListener();
+
+    return () => {
+      unsubscribe();
+      // Note: Keep the key listener attached for the entire app lifecycle
+    };
+  }, [appState, goHome, viewGallery, startNewPost]);
 
   const renderContent = () => {
     switch (appState) {
@@ -216,6 +257,9 @@ const AppContent: React.FC = () => {
       <main className={`relative flex-1 ${appState !== AppState.START ? 'pt-16' : ''}`}>
         <div className="absolute inset-0">{renderContent()}</div>
       </main>
+
+      <ShortcutsHelpDialog isOpen={showShortcutsDialog} onClose={() => setShowShortcutsDialog(false)} />
+
       <Analytics />
     </div>
   );
