@@ -153,6 +153,7 @@ const AppContent: React.FC = () => {
         return enhancedImage ? (
           <ResultView
             imageSrc={enhancedImage}
+            originalImage={originalImage || undefined}
             onStartOver={resetToCamera}
             onViewGallery={viewGallery}
           />

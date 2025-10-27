@@ -5,6 +5,7 @@
  */
 
 import { ImageAdjustments, EditOptions } from '../types';
+import { DEFAULT_PRESETS } from '../data/defaultPresets';
 
 export interface Preset {
   id: string;
@@ -41,6 +42,27 @@ export class PresetManager {
 
   constructor() {
     this.loadFromStorage();
+    // Initialize with defaults if first time or no presets loaded
+    if (this.presets.size === 0) {
+      this.initializeDefaults();
+    }
+  }
+
+  /**
+   * Initialize with default presets on first load
+   */
+  private initializeDefaults(): void {
+    DEFAULT_PRESETS.forEach((preset) => {
+      const id = `default-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      this.presets.set(id, {
+        ...preset,
+        id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        uses: 0,
+      } as Preset);
+    });
+    this.saveToStorage();
   }
 
   /**
