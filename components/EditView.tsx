@@ -32,7 +32,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const presets = usePresets();
 
   const [theme, setTheme] = useState<Theme>('modern');
-  const [message, setMessage] = useState('Congratulations!');
+  const [message, setMessage] = useState('Elevate Your Vision');
   const [ctaText, setCtaText] = useState('');
   // FIX: Use the imported LogoData type directly instead of from the storage namespace.
   const [logoData, setLogoData] = useState<LogoData | null>(null);
@@ -57,6 +57,21 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       setLogoPreview(`data:${savedLogo.mimeType};base64,${savedLogo.base64}`);
     }
   }, []);
+
+  // Auto-generate inspirational message when theme changes
+  useEffect(() => {
+    const generateMessage = async () => {
+      try {
+        const newMessage = await generateInspirationalMessage(theme);
+        setMessage(newMessage);
+      } catch (error) {
+        console.error("Failed to auto-generate message for theme", error);
+        // Keep current message if generation fails
+      }
+    };
+
+    generateMessage();
+  }, [theme]);
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

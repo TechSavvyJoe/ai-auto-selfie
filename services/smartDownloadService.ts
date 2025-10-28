@@ -153,13 +153,45 @@ class SmartDownloadService {
       // Use helper method instead of fetch
       const blob = this.dataUrlToBlob(imageDataUrl);
 
+      // Use Share API for iOS - opens native share sheet with "Save to Photos" option
+      if (this.canUseShareAPI()) {
+        try {
+          const file = new File([blob], fileName + '.jpg', { type: blob.type });
+          await navigator.share({
+            files: [file],
+            title: 'Save Photo',
+            text: 'Save this enhanced photo to your Camera Roll',
+          });
+
+          return {
+            success: true,
+            message: 'Select "Save to Photos" from the share menu to save to your Camera Roll.',
+            method: 'share-api',
+            platform: 'ios',
+          };
+        } catch (shareError: any) {
+          // If user cancels share dialog, that's expected - don't fall through to clipboard
+          if (shareError.name === 'AbortError') {
+            return {
+              success: false,
+              message: 'Save cancelled.',
+              method: 'share-api',
+              platform: 'ios',
+            };
+          }
+          // If Share API fails for other reasons, fall through to clipboard
+          throw shareError;
+        }
+      }
+
+      // Fallback to clipboard only if Share API unavailable
       if (navigator.clipboard && navigator.clipboard.write) {
         const item = new ClipboardItem({ 'image/jpeg': blob });
         await navigator.clipboard.write([item]);
 
         return {
           success: true,
-          message: 'Photo copied! Open Photos app and paste, or use the share button.',
+          message: 'Photo copied to clipboard. Open Photos app and paste to save.',
           method: 'clipboard',
           platform: 'ios',
         };

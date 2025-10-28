@@ -215,15 +215,35 @@ export const generateCaptionFromImage = async (
   const includeHashtags = options?.includeHashtags ?? true;
   const maxWords = options?.maxWords ?? 18;
 
-  const prompt = `You are a world-class social media copywriter.
-Analyze the attached photo and write ONE short caption that fits the content.
-Constraints:
+  // Tone-specific guidance
+  const toneGuidance = {
+    friendly: 'Warm, approachable, conversational. Use "I" or "we" perspective. Express genuine emotion.',
+    professional: 'Polished, confident, authoritative. Showcase expertise and credibility. Include value proposition.',
+    fun: 'Playful, witty, energetic. Use humor, wordplay, or clever observations. Make it shareable.',
+    luxury: 'Sophisticated, elegant, aspirational. Highlight exclusivity and premium quality. Inspire admiration.',
+  };
+
+  const prompt = `You are an award-winning social media copywriter who creates captions that get engagement.
+
+ANALYZE THIS PHOTO:
+Look closely at the mood, lighting, subjects, and overall vibe. Identify what makes this photo special.
+
+WRITE A CAPTIVATING CAPTION:
 - ${maxWords} words maximum
-- Tone: ${tone}
-- Be specific to what’s in the image (subjects, mood, setting)
-- Avoid quotes and emojis in the main sentence
-- ${includeHashtags ? 'Append 2-4 relevant, concise hashtags (no spaces in tags)' : 'No hashtags'}
-Output only the caption line (and hashtags if requested).`;
+- Tone: ${tone} (${toneGuidance[tone]})
+- Make it ENGAGING: Hook the reader, spark emotion, provoke thought, or encourage action
+- Be SPECIFIC to what's actually in the image - not generic
+- ${includeHashtags ? 'End with 2-4 relevant, concise hashtags (no spaces)' : 'No hashtags'}
+
+EXAMPLES FOR YOUR TONE (${tone}):
+${tone === 'friendly' ? '- "Living for these golden hour moments ✨ Nothing beats this vibe"' :
+  tone === 'professional' ? '- "Excellence isn\'t an act, it\'s a habit. Elevating every frame."' :
+  tone === 'fun' ? '- "POV: You just realized how incredible this shot turned out 📸"' :
+  '- "Where perfection meets artistry. This is what premium looks like."'}
+
+OUTPUT FORMAT:
+Write ONLY the caption text (and hashtags if requested). No explanations or other text.`;
+
 
   try {
     const response = await ai.models.generateContent({
