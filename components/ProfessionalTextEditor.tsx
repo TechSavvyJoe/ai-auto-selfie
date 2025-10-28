@@ -3,6 +3,7 @@ import { useToast } from './common/ToastContainer';
 import Icon from './common/Icon';
 import { getAITextGeneratorService } from '../services/aiTextGeneratorService';
 import { useAnalytics } from '../services/analyticsService';
+import EmojiPicker from './EmojiPicker';
 
 interface TextEditorProps {
   onTextSelect: (text: string, style: any) => void;
@@ -37,6 +38,7 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [previewText, setPreviewText] = useState(currentText);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Prevent body scroll when modal is open, load suggestions on mount
   useEffect(() => {
@@ -127,6 +129,14 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
     setTextInput(newText);
     setPreviewText(newText);
   }, []);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const newText = (textInput + emoji).slice(0, 100); // Add emoji, respect max 100 chars
+    setTextInput(newText);
+    setPreviewText(newText);
+    setShowEmojiPicker(false); // Close picker after selection
+    trackFeature('insert_emoji_in_text', { textLength: newText.length });
+  }, [textInput, trackFeature]);
 
   // Keyboard support: ESC to close, Ctrl/Cmd+Enter to submit
   useEffect(() => {
@@ -256,9 +266,18 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
           {activeTab === 'custom' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-3">
-                  Enter Your Text
-                </label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-semibold text-slate-200">
+                    Enter Your Text
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="px-3 py-1.5 text-sm bg-primary-600/20 hover:bg-primary-600/30 text-primary-300 rounded-lg transition-all border border-primary-500/30 flex items-center gap-1.5"
+                  >
+                    <span>😊</span> Emoji
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={textInput}
@@ -377,6 +396,15 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Emoji Picker Modal */}
+      {showEmojiPicker && activeTab === 'custom' && (
+        <EmojiPicker
+          onSelect={handleEmojiSelect}
+          isOpen={showEmojiPicker}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
     </div>
   );
 };
