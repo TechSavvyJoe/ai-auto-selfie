@@ -58,6 +58,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   const [isLandscape, setIsLandscape] = useState(false);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const levelRef = useRef<HTMLDivElement>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
   // Detect orientation changes
   useEffect(() => {
@@ -134,7 +135,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
             whiteBalanceMode: 'continuous',
           } as MediaTrackConstraints
         };
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+  const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         
         // Apply additional track settings for enhanced quality
         const videoTrack = mediaStream.getVideoTracks()[0];
@@ -153,8 +154,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
             settings.exposureMode = 'continuous';
           }
           
-          // Set focus mode
+          // Set focus mode to continuous if supported
           if ('focusMode' in capabilities) {
+            // @ts-ignore Experimental
             settings.focusMode = 'continuous';
           }
           
@@ -168,6 +170,14 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
             await videoTrack.applyConstraints(settings);
           } catch (e) {
             console.warn('Could not apply advanced constraints:', e);
+          }
+
+          // Attempt to set continuous autofocus explicitly
+          try {
+            // @ts-ignore Experimental
+            await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+          } catch (e) {
+            // Ignore if not supported
           }
         }
         
@@ -200,9 +210,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         
-        // Match the mirrored preview for a natural selfie experience
-        const isMirrored = video.style.transform === 'scaleX(-1)';
-        if (isMirrored) {
+        // Mirror front camera captures to match preview
+        const currentIsFront = cameras[selectedCameraIndex]?.label.toLowerCase().includes('front');
+        if (currentIsFront) {
           context.translate(video.videoWidth, 0);
           context.scale(-1, 1);
         }
@@ -218,7 +228,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         onCapture(dataUrl);
       }
     }
-  }, [onCapture]);
+  }, [onCapture, cameras, selectedCameraIndex]);
 
   const handleCapture = useCallback(() => {
     if (timerEnabled) {
@@ -246,6 +256,38 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   const handleSwitchCamera = () => {
     setSelectedCameraIndex(prev => (prev + 1) % cameras.length);
   };
+
+  // Tap-to-focus handler
+  const handleTapToFocus = useCallback(async (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!streamRef.current || !videoRef.current) return;
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width; // 0..1
+    const y = (e.clientY - rect.top) / rect.height; // 0..1
+    setFocusPoint({ x, y });
+
+    // Show focus ring briefly
+    setTimeout(() => setFocusPoint(null), 1200);
+
+    try {
+      // Try single-shot focus at point of interest if supported
+      // @ts-ignore Experimental constraints
+      await videoTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot', pointsOfInterest: [{ x, y }] }] });
+      // Revert to continuous after a moment
+      setTimeout(async () => {
+        try {
+          // @ts-ignore Experimental
+          await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        } catch {}
+      }, 1500);
+    } catch (err) {
+      // Fallback: try continuous again
+      try {
+        // @ts-ignore Experimental
+        await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+      } catch {}
+    }
+  }, []);
 
   const startVideoRecording = useCallback(() => {
     if (!streamRef.current) return;
@@ -329,6 +371,19 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
     }
   }, [zoomLevel]);
 
+  // Apply exposure compensation if supported
+  useEffect(() => {
+    if (!streamRef.current) return;
+    try {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      const caps = videoTrack.getCapabilities() as any;
+      if (caps && 'exposureCompensation' in caps) {
+        // @ts-ignore experimental
+        videoTrack.applyConstraints({ advanced: [{ exposureCompensation }] }).catch(() => {});
+      }
+    } catch {}
+  }, [exposureCompensation]);
+
   // Determine if camera feed should be mirrored. Typically, 'user' (front) facing cameras are mirrored.
   const isFrontCamera = cameras[selectedCameraIndex]?.label.toLowerCase().includes('front');
 
@@ -348,6 +403,21 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         muted
         className={`w-full h-full object-cover ${isFrontCamera ? 'mirror-x' : ''}`}
       />
+      {/* Tap to focus overlay */}
+      <div
+        className="absolute inset-0"
+        onClick={handleTapToFocus}
+        aria-label="Tap to focus"
+        role="button"
+        title="Tap to focus"
+      />
+      {focusPoint && (
+        <div
+          className="absolute w-16 h-16 rounded-full border-2 border-primary-300 shadow-glow pointer-events-none animate-ping-slow"
+          style={{ left: `${focusPoint.x * 100}%`, top: `${focusPoint.y * 100}%`, transform: 'translate(-50%, -50%)' }}
+          aria-hidden="true"
+        />
+      )}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Overlays */}
@@ -566,7 +636,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         /* PORTRAIT LAYOUT - Original */
         <>
           {/* Top controls */}
-          <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm">
+          <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             {/* Aspect Ratio Selector */}
             <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
               {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
@@ -635,6 +705,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
                     value={exposureCompensation}
                     onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
                     className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                    aria-label="Exposure compensation"
+                    title={`Exposure: ${exposureCompensation.toFixed(1)}`}
                   />
                   <div className="text-xs text-white/60 flex justify-between mt-2">
                     <span>🌙 Dark</span>
@@ -661,6 +733,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
                       value={zoomLevel}
                       onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
                       className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                      aria-label="Zoom level"
+                      title={`Zoom: ${zoomLevel.toFixed(1)}x`}
                     />
                   </div>
                 )}
