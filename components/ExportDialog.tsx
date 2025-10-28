@@ -33,12 +33,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [message, setMessage] = useState('');
   const [captionGenerated, setCaptionGenerated] = useState(false);
 
-  // Auto-generate AI caption when dialog opens
+  // Auto-generate AI caption when dialog opens (only if we don't already have one)
   useEffect(() => {
-    if (isOpen && !captionGenerated) {
+    if (isOpen && !captionGenerated && !defaultCaption) {
       generateAICaption();
     }
-  }, [isOpen]);
+  }, [isOpen, captionGenerated, defaultCaption]);
 
   const generateAICaption = useCallback(async () => {
     try {

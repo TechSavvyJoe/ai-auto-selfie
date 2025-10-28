@@ -2,7 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { PremiumButton, IconButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 import { EditOptions, Theme, AspectRatio, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS, OverlayItem } from '../types';
-import { generateInspirationalMessage } from '../services/geminiService';
+// Use fast local phrases for instant overlay text; AI still enhances the photo elsewhere
+import { getQuickOverlayPhrase } from '../services/quickCaptionService';
 import * as storage from '../services/storageService';
 import { getPresetService } from '../services/presetService';
 import Spinner from './common/Spinner';
@@ -76,22 +77,11 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [showAiModesPanel, setShowAiModesPanel] = useState(false);
   const [showPresetManager, setShowPresetManager] = useState(false);
 
-  // Auto-generate caption when theme changes
+  // Instant local caption when theme changes (no network)
   useEffect(() => {
-    const generateCaption = async () => {
-      try {
-        setIsGeneratingCaption(true);
-        const newCaption = await generateInspirationalMessage(theme);
-        setPrimaryCaption(newCaption);
-        setCaptionEditValue(newCaption);
-      } catch (error) {
-        console.error("Failed to auto-generate caption for theme", error);
-      } finally {
-        setIsGeneratingCaption(false);
-      }
-    };
-
-    generateCaption();
+    const phrase = getQuickOverlayPhrase(theme);
+    setPrimaryCaption(phrase);
+    setCaptionEditValue(phrase);
   }, [theme]);
 
   const handleCaptionSaveClick = useCallback(() => {
@@ -209,9 +199,10 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                   onClick={async () => {
                     try {
                       setIsGeneratingCaption(true);
-                      const newCaption = await generateInspirationalMessage(theme);
-                      setPrimaryCaption(newCaption);
-                      setCaptionEditValue(newCaption);
+                      // Regenerate locally for speed (no network)
+                      const fresh = getQuickOverlayPhrase(theme);
+                      setPrimaryCaption(fresh);
+                      setCaptionEditValue(fresh);
                     } catch (error) {
                       console.error('Failed to generate caption:', error);
                     } finally {

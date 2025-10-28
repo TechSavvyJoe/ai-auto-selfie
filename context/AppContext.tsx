@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { AppState, EditOptions, GalleryImage } from '../types';
 import { composeOverlays } from '../services/overlaysService';
 import { enhanceImageWithAI, generateCaptionFromImage } from '../services/geminiService';
+import { getQuickDealershipCaption } from '../services/quickCaptionService';
 import { getSettingsService } from '../services/settingsService';
 import { dataUrlToBase64 } from '../utils/imageUtils';
 import * as storage from '../services/storageService';
@@ -165,7 +166,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setEnhancedImage(newImageUrl);
 
         // Generate an auto-caption from the final image (with overlays if any)
+        // Show an instant, high-quality dealership caption first (no network), then replace with AI result
         let caption: string | null = null;
+        try {
+          const quick = getQuickDealershipCaption();
+          setAutoCaption(quick);
+        } catch {}
         try {
           const base64Out = newImageUrl.split(',')[1] || '';
           if (base64Out) {
@@ -175,7 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             // Support all 11 caption tones
             const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
               tone as any || 'friendly';
-            const maxWords = 18; // Standard word count for all tones
+            const maxWords = 18; // Keep tight for speed and readability
             caption = await generateCaptionFromImage(base64Out, 'image/jpeg', {
               tone: generatorTone,
               includeHashtags,
