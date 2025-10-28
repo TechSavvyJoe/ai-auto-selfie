@@ -243,15 +243,17 @@ CONTEXT: This is a customer vehicle delivery photo for a car dealership's social
 ANALYZE THE PHOTO:
 - Look for: happy customers, vehicles, dealership setting, celebration moments
 - Identify the vehicle type if visible (sedan, SUV, truck, luxury car, etc.)
+- Infer if the vehicle is NEW or PRE-OWNED; avoid saying "new" if it looks pre-owned
 - Note the mood and emotional tone of the moment
 
 WRITE AN ENGAGING DEALERSHIP POST:
 - ${maxWords} words maximum
-- Celebrate the customer's moment (congratulate them on their new vehicle)
-- Express genuine excitement and pride in helping them
+- Celebrate the customer's moment (congratulate them on their vehicle; say "new" only if it appears new)
+- Express genuine excitement and pride in helping them (warm, human voice)
 - Use first-person plural "we" or "our team" perspective (dealership voice)
-- Make it feel personal and authentic, not salesy
-- Create emotional connection - this is about the customer's joy and milestone
+- Make it personal and authentic, never salesy or pushy
+- Include a natural human touch (1 emoji max, placed near the end)
+- Create emotional connection — this is about the customer's joy and milestone
 - ${includeHashtags ? 'End with 3-5 automotive/dealership hashtags' : 'No hashtags'}
 
 DEALERSHIP CAPTION EXAMPLES:
@@ -265,7 +267,9 @@ DEALERSHIP CAPTION EXAMPLES:
 
 IMPORTANT RULES:
 - Focus on the CUSTOMER'S happiness and milestone, not just the vehicle
-- Keep it genuine and celebratory - dealerships are in the joy business
+- If the vehicle appears pre-owned, avoid phrases like "brand new" or "new car"
+- Keep it genuine and celebratory — dealerships are in the joy business
+- 0–1 emoji total; never more than one
 - Use automotive and dealership hashtags (like #NewCarDay #CustomerDelivery #DealershipFamily #CarDelivery)
 - Write ONLY the caption text. No explanations, quotes, or extra formatting.`;
 

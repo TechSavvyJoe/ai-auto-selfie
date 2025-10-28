@@ -177,6 +177,59 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
               value={active.position}
               onChange={(val) => update(active.id, { position: val })}
             />
+            {/* Fine nudge controls */}
+            <div className="mt-2 grid grid-cols-3 gap-1 text-white/70 text-xs">
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+                onClick={() => update(active.id, { offsetY: (active.offsetY ?? 0) - 5 })}
+                title="Nudge up"
+              >▲</button>
+              <div className="flex gap-1 justify-center">
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+                  onClick={() => update(active.id, { offsetX: (active.offsetX ?? 0) - 5 })}
+                  title="Nudge left"
+                >◀︎</button>
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+                  onClick={() => update(active.id, { offsetX: (active.offsetX ?? 0) + 5 })}
+                  title="Nudge right"
+                >▶︎</button>
+              </div>
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+                onClick={() => update(active.id, { offsetY: (active.offsetY ?? 0) + 5 })}
+                title="Nudge down"
+              >▼</button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-[10px] text-white/50 mb-1">Offset X (px)</div>
+                <input
+                  type="number"
+                  value={Math.round(active.offsetX ?? 0)}
+                  onChange={(e) => update(active.id, { offsetX: parseInt(e.target.value || '0', 10) })}
+                  className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white"
+                  aria-label="Offset X"
+                  title="Offset X (pixels)"
+                />
+              </div>
+              <div>
+                <div className="text-[10px] text-white/50 mb-1">Offset Y (px)</div>
+                <input
+                  type="number"
+                  value={Math.round(active.offsetY ?? 0)}
+                  onChange={(e) => update(active.id, { offsetY: parseInt(e.target.value || '0', 10) })}
+                  className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white"
+                  aria-label="Offset Y"
+                  title="Offset Y (pixels)"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Scale */}

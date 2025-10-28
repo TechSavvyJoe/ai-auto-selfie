@@ -196,6 +196,37 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                   Edit
                 </button>
                 <button
+                  onClick={() => {
+                    const id = `caption_${Date.now()}`;
+                    setOverlays(prev => [
+                      ...prev,
+                      {
+                        id,
+                        type: 'text',
+                        text: primaryCaption,
+                        color: '#ffffff',
+                        bgColor: 'rgba(0,0,0,0.35)',
+                        position: 'bottom',
+                        scale: 1.2,
+                        opacity: 1,
+                        fontSize: 28,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        shadowBlur: 4,
+                        shadowOffsetX: 0,
+                        shadowOffsetY: 2,
+                        shadowColor: '#000000',
+                        offsetX: 0,
+                        offsetY: 0,
+                      },
+                    ]);
+                  }}
+                  className="flex-1 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+                  title="Place caption on photo so you can move and resize it"
+                >
+                  <span>📍</span> Place On Photo
+                </button>
+                <button
                   onClick={async () => {
                     try {
                       setIsGeneratingCaption(true);

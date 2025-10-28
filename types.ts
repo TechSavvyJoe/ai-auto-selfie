@@ -188,6 +188,9 @@ export interface BaseOverlayItem {
   opacity?: number; // 0-1
   rotation?: number; // degrees
   scale?: number; // 0.1 - 5
+  // Fine position offsets (in pixels) relative to the anchor position
+  offsetX?: number;
+  offsetY?: number;
 }
 
 export interface TextOverlay extends BaseOverlayItem {

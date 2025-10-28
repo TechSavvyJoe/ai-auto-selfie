@@ -48,7 +48,9 @@ function drawText(ctx: CanvasRenderingContext2D, overlay: TextOverlay, canvasWid
   const textWidth = metrics.width;
   const textHeight = fontSize * 1.2;
 
-  const { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, textWidth, textHeight);
+  let { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, textWidth, textHeight);
+  x += overlay.offsetX ?? 0;
+  y += overlay.offsetY ?? 0;
 
   if (overlay.rotation) {
     ctx.translate(x + textWidth / 2, y + textHeight / 2);
@@ -109,7 +111,9 @@ async function drawSticker(
     const metrics = ctx.measureText(overlay.emoji);
     const w = metrics.width;
     const h = size * 1.1;
-    const { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, w, h);
+  let { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, w, h);
+  x += overlay.offsetX ?? 0;
+  y += overlay.offsetY ?? 0;
 
     if (overlay.rotation) {
       ctx.translate(x + w / 2, y + h / 2);
@@ -135,7 +139,9 @@ async function drawSticker(
         const aspect = img.width / img.height;
         const w = size;
         const h = size / aspect;
-        const { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, w, h);
+  let { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, w, h);
+  x += overlay.offsetX ?? 0;
+  y += overlay.offsetY ?? 0;
 
         if (overlay.rotation) {
           ctx.translate(x + w / 2, y + h / 2);
