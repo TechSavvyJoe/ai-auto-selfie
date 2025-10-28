@@ -178,6 +178,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const settingsService = getSettingsService();
             const tone = settingsService.getCaptionTone();
             const includeHashtags = settingsService.isIncludeHashtagsEnabled();
+            const dealershipName = settingsService.getDealershipName();
+            const dealershipCity = settingsService.getDealershipCity();
             // Support all 11 caption tones
             const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
               tone as any || 'friendly';
@@ -186,6 +188,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               tone: generatorTone,
               includeHashtags,
               maxWords,
+              dealershipName,
+              dealershipCity,
             });
             setAutoCaption(caption);
           }

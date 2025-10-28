@@ -9,6 +9,7 @@ interface AdjustmentPreviewProps {
   adjustments: ImageAdjustments;
   maxHeight?: string;
   overlays?: OverlayItem[];
+  overlayRenderer?: (info: { imageRect: { x: number; y: number; width: number; height: number }; naturalSize: { width: number; height: number } }) => React.ReactNode;
 }
 
 const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
@@ -16,12 +17,17 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
   adjustments,
   maxHeight = 'h-96',
   overlays = [],
+  overlayRenderer,
 }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastAdjustmentsRef = useRef<ImageAdjustments>(adjustments);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [imageRect, setImageRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
 
   // Debounced preview update
   const updatePreview = useCallback(async () => {
@@ -81,8 +87,39 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
     };
   }, []);
 
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    const img = imgRef.current as HTMLImageElement | null;
+    if (!container || !img) return;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const nw = img.naturalWidth || 1;
+    const nh = img.naturalHeight || 1;
+    const scale = Math.min(cw / nw, ch / nh);
+    const width = Math.round(nw * scale);
+    const height = Math.round(nh * scale);
+    const x = Math.round((cw - width) / 2);
+    const y = Math.round((ch - height) / 2);
+    setImageRect({ x, y, width, height });
+    setNaturalSize({ width: nw, height: nh });
+  }, []);
+
+  useEffect(() => {
+    const handler = () => measure();
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [measure]);
+
+  useEffect(() => {
+    // Re-measure when preview image changes
+    if (previewImage) {
+      // Wait a tick for layout
+      setTimeout(measure, 0);
+    }
+  }, [previewImage, measure]);
+
   return (
-    <div className={`relative bg-gray-900 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center ${maxHeight}`}>
+    <div ref={containerRef} className={`relative bg-gray-900 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center ${maxHeight}`}>
       {isProcessing && (
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
           <Spinner />
@@ -97,9 +134,11 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
 
       {previewImage ? (
         <img
+          ref={imgRef}
           src={previewImage}
           alt="Adjustment Preview"
           className="w-full h-full object-contain"
+          onLoad={measure}
         />
       ) : (
         <div className="text-gray-500 text-sm">Loading preview...</div>
@@ -113,6 +152,12 @@ const AdjustmentPreview: React.FC<AdjustmentPreviewProps> = ({
         adjustments.sharpen !== 0) && (
         <div className="absolute top-2 right-2 bg-primary-500/80 text-white text-xs px-2 py-1 rounded-full">
           Live Preview
+        </div>
+      )}
+      {/* Interactive overlay layer (optional) */}
+      {overlayRenderer && imageRect && naturalSize && (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="false">
+          {overlayRenderer({ imageRect, naturalSize })}
         </div>
       )}
     </div>

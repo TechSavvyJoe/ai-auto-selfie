@@ -10,6 +10,7 @@ import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
 import AdjustmentPreview from './AdjustmentPreview';
+import InteractiveOverlayLayer from './InteractiveOverlayLayer';
 import OverlaysPanel from './OverlaysPanel';
 import AutoEnhancePanel from './AutoEnhancePanel';
 import FaceBeautyPanel from './FaceBeautyPanel';
@@ -161,6 +162,14 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
             adjustments={adjustments}
             overlays={overlays}
             maxHeight="h-full"
+            overlayRenderer={({ imageRect, naturalSize }) => (
+              <InteractiveOverlayLayer
+                overlays={overlays}
+                onChange={setOverlays}
+                imageRect={imageRect}
+                naturalSize={naturalSize}
+              />
+            )}
           />
         ) : (
           <img src={imageSrc} alt="Captured selfie" className="max-w-full max-h-full object-contain rounded-lg" />

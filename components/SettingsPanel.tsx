@@ -50,6 +50,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
     setPreferences(settingsService.getPreferences());
   };
 
+  const handleDealershipNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    settingsService.setDealershipName(e.target.value);
+    setPreferences(settingsService.getPreferences());
+  };
+
+  const handleDealershipCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    settingsService.setDealershipCity(e.target.value);
+    setPreferences(settingsService.getPreferences());
+  };
+
   const handleReset = () => {
     if (window.confirm('Reset all settings to defaults?')) {
       settingsService.resetToDefaults();
@@ -67,12 +77,42 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             <Icon type="settings" className="w-6 h-6 text-primary-400" />
             <h2 className="text-2xl font-bold text-white">Settings</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg transition-colors" aria-label="Close settings">
             <Icon type="close" className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Dealership Personalization */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white">Dealership Personalization</h3>
+            <p className="text-xs text-white/60">Optional: if you provide these, AI captions will naturally include them once.</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="block text-xs text-white/60 mb-1" htmlFor="dealershipName">Dealership Name</label>
+                <input
+                  id="dealershipName"
+                  type="text"
+                  placeholder="e.g., Summit Auto Group"
+                  value={(preferences as any).dealershipName || ''}
+                  onChange={handleDealershipNameChange}
+                  className="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded text-white placeholder-white/40 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1" htmlFor="dealershipCity">City</label>
+                <input
+                  id="dealershipCity"
+                  type="text"
+                  placeholder="e.g., Austin, TX"
+                  value={(preferences as any).dealershipCity || ''}
+                  onChange={handleDealershipCityChange}
+                  className="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded text-white placeholder-white/40 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+          </div>
+
           <div>
             <h3 className="text-sm font-semibold text-white mb-3">Theme</h3>
             <SegmentedControl<'light' | 'dark' | 'auto'>

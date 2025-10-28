@@ -128,6 +128,25 @@ class SettingsService {
     this.savePreferences();
   }
 
+  // Dealership personalization
+  getDealershipName(): string {
+    return (this.preferences as any).dealershipName || '';
+  }
+
+  setDealershipName(name: string): void {
+    (this.preferences as any).dealershipName = name.trim();
+    this.savePreferences();
+  }
+
+  getDealershipCity(): string {
+    return (this.preferences as any).dealershipCity || '';
+  }
+
+  setDealershipCity(city: string): void {
+    (this.preferences as any).dealershipCity = city.trim();
+    this.savePreferences();
+  }
+
   // Shortcut management
   updateShortcut(id: string, keys: string[]): void {
     const shortcut = this.preferences.shortcuts.find(s => s.id === id);

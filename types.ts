@@ -100,6 +100,9 @@ export interface UserPreferences {
   // Caption generation preferences
   captionTone?: 'friendly' | 'formal' | 'brief';
   includeHashtags?: boolean;
+  // Dealership personalization
+  dealershipName?: string;
+  dealershipCity?: string;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -112,6 +115,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   enableAnalytics: true,
   captionTone: 'friendly',
   includeHashtags: true,
+  dealershipName: '',
+  dealershipCity: '',
 };
 
 // Analytics

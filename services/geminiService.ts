@@ -231,14 +231,21 @@ export const generateCaptionFromImage = async (
     tone?: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy';
     includeHashtags?: boolean;
     maxWords?: number; // default 14-20 words
+    dealershipName?: string;
+    dealershipCity?: string;
   }
 ): Promise<string> => {
   const includeHashtags = options?.includeHashtags ?? true;
   const maxWords = options?.maxWords ?? 20;
+  const dealershipInfo = [options?.dealershipName, options?.dealershipCity].filter(Boolean).join(' in ');
 
   const prompt = `You are a social media expert specializing in automotive dealership content that drives engagement and builds trust.
 
 CONTEXT: This is a customer vehicle delivery photo for a car dealership's social media.
+${dealershipInfo ? `
+BRAND CONTEXT (if it fits naturally): ${dealershipInfo}
+- Mention the dealership context at most once and only if it improves the caption's authenticity.
+` : ''}
 
 ANALYZE THE PHOTO:
 - Look for: happy customers, vehicles, dealership setting, celebration moments
@@ -255,6 +262,7 @@ WRITE AN ENGAGING DEALERSHIP POST:
 - Include a natural human touch (1 emoji max, placed near the end)
 - Create emotional connection — this is about the customer's joy and milestone
 - ${includeHashtags ? 'End with 3-5 automotive/dealership hashtags' : 'No hashtags'}
+${dealershipInfo ? '- If it feels natural, lightly include the dealership name or city once (avoid sounding like an ad)' : ''}
 
 DEALERSHIP CAPTION EXAMPLES:
 "Congratulations to the Smith family on their beautiful new Tahoe! We loved being part of this special moment. Here's to many adventures ahead! 🚗✨ #NewCarDay #HappyCustomers #DealershipFamily"
