@@ -10,6 +10,7 @@ const ProfessionalTextEditor = lazy(() => import('./ProfessionalTextEditor'));
 export interface OverlaysPanelProps {
   overlays: OverlayItem[];
   onChange: (overlays: OverlayItem[]) => void;
+  imageSrc?: string;
 }
 
 const positions: OverlayPosition[] = [
@@ -20,7 +21,7 @@ const positions: OverlayPosition[] = [
 
 const emojiSet = ['✨', '🔥', '❤️', '🎉', '😎', '💯', '🌟', '🚀', '💖', '📸'];
 
-export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange }) => {
+export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange, imageSrc }) => {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [showTextEditor, setShowTextEditor] = React.useState(false);
 
@@ -319,6 +320,7 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
                 onTextSelect={handleTextEditorSelect}
                 onClose={() => setShowTextEditor(false)}
                 aiMode="professional"
+                imageDataUrl={imageSrc}
               />
             </Suspense>
           </div>

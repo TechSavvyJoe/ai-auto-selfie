@@ -129,12 +129,41 @@ class AITextGeneratorService {
   ];
 
   /**
+   * Extract base64 and mimeType from data URL
+   */
+  private extractBase64AndMimeType(dataUrl: string): [string, string] {
+    if (!dataUrl) return ['', 'image/jpeg'];
+
+    try {
+      const parts = dataUrl.split(',');
+      if (parts.length !== 2) return ['', 'image/jpeg'];
+
+      const metadata = parts[0];
+      const base64 = parts[1];
+      const mimeMatch = metadata.match(/:(.*?);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+      return [base64, mimeType];
+    } catch (error) {
+      console.error('Error parsing data URL:', error);
+      return ['', 'image/jpeg'];
+    }
+  }
+
+  /**
    * Generate contextual text suggestions based on image
    */
   async generateTextSuggestions(imageDataUrl: string, aiMode: string): Promise<TextSuggestion[]> {
     try {
       // Get AI-generated caption first
-      const caption = await generateCaptionFromImage(imageDataUrl);
+      const [base64, mimeType] = this.extractBase64AndMimeType(imageDataUrl);
+
+      if (!base64) {
+        // If no image provided, return default suggestions
+        return this.getDefaultSuggestions();
+      }
+
+      const caption = await generateCaptionFromImage(base64, mimeType);
 
       const suggestions: TextSuggestion[] = [];
 

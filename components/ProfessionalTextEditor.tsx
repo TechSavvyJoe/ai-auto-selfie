@@ -38,8 +38,11 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [previewText, setPreviewText] = useState(currentText);
 
-  // Load suggestions on mount
+  // Prevent body scroll when modal is open, load suggestions on mount
   useEffect(() => {
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+
     const loadSuggestions = async () => {
       try {
         setIsLoading(true);
@@ -71,6 +74,11 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
     if (imageDataUrl) {
       loadSuggestions();
     }
+
+    // Restore body scroll on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [imageDataUrl, aiMode, showToast]);
 
   const handleSelectSuggestion = useCallback((text: string) => {
@@ -119,6 +127,22 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
     setTextInput(newText);
     setPreviewText(newText);
   }, []);
+
+  // Keyboard support: ESC to close, Ctrl/Cmd+Enter to submit
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (previewText.trim() && selectedStyle) {
+          handleApplyText();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewText, selectedStyle, handleApplyText, onClose]);
 
   const textGeneratorService = getAITextGeneratorService();
   const presets = textGeneratorService.getAllPresets();
@@ -192,11 +216,11 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
                       <button
                         key={idx}
                         onClick={() => handleSelectSuggestion(suggestion.text)}
-                        className={`w-full p-4 rounded-lg transition-all text-left group ${
+                        className={`w-full p-4 rounded-lg transition-all text-left group border ${
                           previewText === suggestion.text
                             ? 'bg-gradient-to-r from-primary-500/30 to-primary-600/30 border-primary-500/50'
-                            : 'bg-slate-700/40 border border-slate-600/50 hover:border-primary-500/50 hover:bg-slate-700/60'
-                        } border`}
+                            : 'bg-slate-700/40 border-slate-600/50 hover:border-primary-500/50 hover:bg-slate-700/60'
+                        }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">

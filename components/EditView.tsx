@@ -253,7 +253,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
         </ControlGroup>
 
         <ControlGroup title="Text & Stickers" icon="✨">
-          <OverlaysPanel overlays={overlays} onChange={setOverlays} />
+          <OverlaysPanel overlays={overlays} onChange={setOverlays} imageSrc={imageSrc} />
         </ControlGroup>
 
         <ControlGroup title="Professional Adjustments" icon="⚙️">

@@ -186,11 +186,14 @@ class SmartDownloadService {
       link.click();
       document.body.removeChild(link);
 
-      URL.revokeObjectURL(imageDataUrl);
+      // Only revoke if it's a blob URL, not a data URL
+      if (imageDataUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageDataUrl);
+      }
 
       return {
         success: true,
-        message: platform === 'desktop' 
+        message: platform === 'desktop'
           ? 'Photo downloaded to Downloads folder!'
           : 'Photo saved! Check your Downloads folder.',
         method: 'download',
