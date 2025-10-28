@@ -90,6 +90,7 @@ npm run dev
 
 Visit `http://localhost:3000` to see the app in action!
 
+**Quick Start:** For a condensed 5-minute setup (install, run setup, start dev), see `Documentation/SETUP_QUICK_START.md` or run `npm run setup` after installing dependencies.
 ### Building for Production
 
 ```bash

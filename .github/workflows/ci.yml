@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Production smoke test (optional)
+        if: ${{ secrets.PROD_URL }}
+        env:
+          PROD_URL: ${{ secrets.PROD_URL }}
+        run: |
+          echo "Checking production URL: $PROD_URL"
+          # Use curl to ensure a 2xx/3xx response; fail the step otherwise
+          curl --fail --silent --show-error --location "$PROD_URL" -o /dev/null
+
+      - name: Skip smoke test when no PROD_URL
+        if: ${{ !secrets.PROD_URL }}
+        run: echo "PROD_URL secret not set; skipping production smoke test"
