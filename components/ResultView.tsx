@@ -31,8 +31,31 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
   // Consolidated Save/Share handled via ExportDialog
 
   return (
-    <div className="w-full h-full relative flex flex-col items-center justify-center bg-black p-4">
-      <div className="flex-grow flex items-center justify-center w-full h-full overflow-hidden my-16">
+    <div className="w-full h-full relative flex flex-col bg-gradient-to-b from-slate-900 via-black to-black p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between py-4 border-b border-slate-800/50 mb-4">
+        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+          ✨ Your Enhanced Photo
+        </h1>
+        {originalImage && (
+          <button
+            type="button"
+            onClick={() => setShowComparison(!showComparison)}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 ${
+              showComparison
+                ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
+                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50'
+            }`}
+            title={showComparison ? 'Hide comparison' : 'Show before/after comparison'}
+          >
+            <Icon type="compare" className="w-4 h-4" />
+            {showComparison ? 'Hide Comparison' : 'Compare'}
+          </button>
+        )}
+      </div>
+
+      {/* Image Display */}
+      <div className="flex-grow flex items-center justify-center w-full overflow-hidden rounded-2xl bg-black/50 border border-slate-700/50 shadow-inner mb-4">
         {showComparison && originalImage ? (
           <BeforeAfterSlider
             beforeImage={originalImage}
@@ -41,43 +64,60 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
             afterLabel="Enhanced"
           />
         ) : (
-          <img src={imageSrc} alt="AI Enhanced selfie" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+          <img
+            src={imageSrc}
+            alt="AI Enhanced selfie"
+            className="max-w-full max-h-full object-contain"
+          />
         )}
       </div>
-      
-      {/* Auto-caption bubble */}
+
+      {/* Auto-caption Editor */}
       {autoCaption && (
-        <div className="absolute bottom-24 left-4 right-4 sm:left-auto sm:right-4 max-w-2xl p-4 rounded-xl bg-neutral-900/80 border border-neutral-700 shadow-lg backdrop-blur-md">
+        <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-primary-500/10 to-blue-500/10 border border-primary-500/30 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">✏️</span>
+            <h3 className="font-semibold text-white">AI-Generated Caption</h3>
+          </div>
           <CaptionEditor
             caption={autoCaption}
             onSave={handleCaptionSave}
             compactMode={true}
             className="mb-2"
           />
-          {/* Copy/Quick Share removed to simplify to single Save/Share flow */}
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-md flex flex-col sm:flex-row justify-center items-center gap-4">
-        {originalImage && (
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-3 pt-4 border-t border-slate-800/50">
+        <div className="flex flex-col gap-3 flex-grow sm:flex-row">
           <PremiumButton
-            onClick={() => setShowComparison(!showComparison)}
-            variant={showComparison ? 'primary' : 'secondary'}
-            icon={<Icon type="compare" className="w-4 h-4" />}
+            onClick={onStartOver}
+            variant="secondary"
+            icon={<Icon type="retry" className="w-4 h-4" />}
             size="md"
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
-            {showComparison ? '✓ Compare' : 'Compare'}
+            <span className="font-semibold">Create New</span>
           </PremiumButton>
-        )}
-        <PremiumButton onClick={onStartOver} variant="secondary" size="md" icon={<Icon type="retry" className="w-4 h-4" />} className="w-full sm:w-auto">
-          Create New
-        </PremiumButton>
-        <PremiumButton onClick={onViewGallery} variant="secondary" size="md" icon={<Icon type="history" className="w-4 h-4" />} className="w-full sm:w-auto">
-          Gallery
-        </PremiumButton>
-        <PremiumButton onClick={() => setShowExport(true)} variant="success" size="md" icon={<Icon type="share" className="w-4 h-4" />} className="w-full sm:w-auto">
-          Save/Share
+          <PremiumButton
+            onClick={onViewGallery}
+            variant="secondary"
+            icon={<Icon type="history" className="w-4 h-4" />}
+            size="md"
+            className="flex-1"
+          >
+            <span className="font-semibold">View Gallery</span>
+          </PremiumButton>
+        </div>
+        <PremiumButton
+          onClick={() => setShowExport(true)}
+          variant="primary"
+          icon={<Icon type="share" className="w-5 h-5" />}
+          size="md"
+          className="sm:w-auto flex-1 sm:flex-none"
+        >
+          <span className="font-bold">Save & Share</span>
         </PremiumButton>
       </div>
 

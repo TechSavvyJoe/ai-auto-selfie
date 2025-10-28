@@ -327,21 +327,30 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   };
 
   // Smart camera switching between front and rear
-  const handleSmartSwitchCamera = async () => {
-    const frontCameras = getFrontCameras();
-    const rearCameras = getRearCameras();
+  const handleSmartSwitchCamera = useCallback(async () => {
+    const frontCameras = cameras.filter(camera =>
+      camera.label.toLowerCase().includes('front') ||
+      camera.label.toLowerCase().includes('user') ||
+      camera.label.toLowerCase().includes('selfie')
+    );
+    const rearCameras = cameras.filter(camera =>
+      !camera.label.toLowerCase().includes('front') &&
+      !camera.label.toLowerCase().includes('user') &&
+      !camera.label.toLowerCase().includes('selfie')
+    );
 
     if (isUsingFrontCamera && rearCameras.length > 0) {
       // Switching from front to rear - pick the best rear camera
       const bestRear = await selectBestRearCamera();
       if (bestRear) {
+        // Update camera index which will trigger the stream to switch
         setSelectedCameraIndex(bestRear.index);
         setIsUsingFrontCamera(false);
       }
     } else if (!isUsingFrontCamera && frontCameras.length > 0) {
       // Switching from rear to front - pick the first front camera
-      const frontIndex = cameras.findIndex(camera => 
-        camera.label.toLowerCase().includes('front') || 
+      const frontIndex = cameras.findIndex(camera =>
+        camera.label.toLowerCase().includes('front') ||
         camera.label.toLowerCase().includes('user') ||
         camera.label.toLowerCase().includes('selfie')
       );
@@ -350,7 +359,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         setIsUsingFrontCamera(true);
       }
     }
-  };
+  }, [isUsingFrontCamera, cameras]);
 
   // Tap-to-focus handler
   const handleTapToFocus = useCallback(async (e: React.MouseEvent<HTMLDivElement>) => {

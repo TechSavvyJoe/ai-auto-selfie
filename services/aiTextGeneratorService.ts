@@ -23,6 +23,7 @@ export interface TextStylePreset {
   shadowBlur: number;
   textAlign: 'left' | 'center' | 'right';
   category: string;
+  fontFamily?: string;
 }
 
 class AITextGeneratorService {
@@ -36,6 +37,7 @@ class AITextGeneratorService {
       shadowBlur: 8,
       textAlign: 'center',
       category: 'professional',
+      fontFamily: 'Georgia, serif',
     },
     {
       name: 'Elegant Script',
@@ -46,6 +48,7 @@ class AITextGeneratorService {
       shadowBlur: 12,
       textAlign: 'center',
       category: 'elegant',
+      fontFamily: 'Brush Script MT, cursive',
     },
     {
       name: 'Modern Minimal',
@@ -56,6 +59,7 @@ class AITextGeneratorService {
       shadowBlur: 4,
       textAlign: 'left',
       category: 'modern',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     },
     {
       name: 'Vibrant & Bold',
@@ -66,6 +70,7 @@ class AITextGeneratorService {
       shadowBlur: 6,
       textAlign: 'center',
       category: 'playful',
+      fontFamily: 'Comic Sans MS, cursive, sans-serif',
     },
     {
       name: 'Luxury Gold',
@@ -76,6 +81,7 @@ class AITextGeneratorService {
       shadowBlur: 10,
       textAlign: 'center',
       category: 'luxury',
+      fontFamily: 'Garamond, Georgia, serif',
     },
     {
       name: 'Tech Cyan',
@@ -86,6 +92,7 @@ class AITextGeneratorService {
       shadowBlur: 8,
       textAlign: 'center',
       category: 'modern',
+      fontFamily: '"Courier New", monospace',
     },
     {
       name: 'Neon Glow',
@@ -96,6 +103,7 @@ class AITextGeneratorService {
       shadowBlur: 20,
       textAlign: 'center',
       category: 'modern',
+      fontFamily: '"Arial Black", sans-serif',
     },
     {
       name: 'Bold Outline',
@@ -106,6 +114,7 @@ class AITextGeneratorService {
       shadowBlur: 10,
       textAlign: 'center',
       category: 'professional',
+      fontFamily: 'Impact, fantasy',
     },
     {
       name: 'Soft Shadow',
@@ -116,6 +125,7 @@ class AITextGeneratorService {
       shadowBlur: 15,
       textAlign: 'center',
       category: 'elegant',
+      fontFamily: 'Georgia, serif',
     },
     {
       name: '3D Effect',
@@ -126,6 +136,7 @@ class AITextGeneratorService {
       shadowBlur: 12,
       textAlign: 'center',
       category: 'modern',
+      fontFamily: '"Trebuchet MS", sans-serif',
     },
     {
       name: 'Retro',
@@ -136,6 +147,7 @@ class AITextGeneratorService {
       shadowBlur: 8,
       textAlign: 'center',
       category: 'playful',
+      fontFamily: '"Comic Sans MS", "Courier New", monospace',
     },
     {
       name: 'Vintage',
@@ -146,6 +158,7 @@ class AITextGeneratorService {
       shadowBlur: 6,
       textAlign: 'center',
       category: 'elegant',
+      fontFamily: 'Garamond, serif',
     },
     {
       name: 'Luxury Premium',
@@ -156,6 +169,7 @@ class AITextGeneratorService {
       shadowBlur: 12,
       textAlign: 'center',
       category: 'luxury',
+      fontFamily: 'Copperplate, Georgia, serif',
     },
     {
       name: 'Minimalist Clean',
@@ -166,6 +180,7 @@ class AITextGeneratorService {
       shadowBlur: 2,
       textAlign: 'left',
       category: 'modern',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     },
     {
       name: 'Graffiti Bold',
@@ -176,6 +191,7 @@ class AITextGeneratorService {
       shadowBlur: 6,
       textAlign: 'center',
       category: 'playful',
+      fontFamily: '"Comic Sans MS", "Chalkboard SE", cursive',
     },
   ];
 

@@ -146,16 +146,16 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Share Photo"
+      title="🎉 Share Your Enhanced Photo"
       size="md"
       showCloseButton={true}
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* AI-Generated Caption */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-semibold text-white">
-              AI-Generated Caption
+        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-bold text-white flex items-center gap-2">
+              <span>✨</span> AI-Generated Caption
             </label>
             <Button
               onClick={generateAICaption}
@@ -177,46 +177,62 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               )}
             </Button>
           </div>
-          
+
           {isGeneratingCaption ? (
-            <div className="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-              <div className="flex items-center gap-3">
-                <Icon type="spinner" className="w-5 h-5 text-primary-400 animate-spin" />
-                <p className="text-sm text-neutral-300">AI is analyzing your photo and writing the perfect caption...</p>
-              </div>
+            <div className="p-4 bg-primary-500/10 rounded-lg border border-primary-500/30 flex items-center gap-3">
+              <Icon type="spinner" className="w-5 h-5 text-primary-400 animate-spin flex-shrink-0" />
+              <p className="text-sm text-primary-200">Writing the perfect caption for your photo...</p>
             </div>
           ) : (
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={4}
-              placeholder="Your AI-generated caption will appear here..."
-              className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white focus:outline-none focus:border-primary-500 resize-none"
-            />
+            <>
+              <textarea
+                value={caption}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCaption(e.target.value)}
+                rows={4}
+                placeholder="Your AI-generated caption will appear here..."
+                className="w-full p-3 bg-slate-900/50 border border-slate-600/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/30 resize-none transition-all"
+              />
+              <div className="text-xs text-slate-400 mt-2">
+                {caption.length} characters
+              </div>
+            </>
           )}
-          
-          <div className="flex items-start gap-2 mt-2">
-            <Icon type="info" className="w-4 h-4 text-primary-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-neutral-400">
-              Caption will be copied to your clipboard. After sharing the photo, paste it into your social media post!
+
+          <div className="flex items-start gap-2 mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+            <Icon type="info" className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-blue-300">
+              Caption will be copied to your clipboard. After sharing, paste it into your social media post!
             </p>
           </div>
         </div>
 
         {/* How it works */}
-        <div className="p-4 bg-gradient-to-r from-primary-500/10 to-pink-500/10 border border-primary-500/30 rounded-lg">
-          <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-            <Icon type="share" className="w-4 h-4" />
-            How This Works
+        <div className="p-4 bg-gradient-to-r from-primary-500/5 to-cyan-500/5 border border-primary-500/20 rounded-xl">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <span>📤</span> How This Works
           </h3>
-          <ol className="text-xs text-neutral-300 space-y-1 list-decimal list-inside">
-            <li>Click "Share Photo" below</li>
-            <li>Choose where to share (Instagram, Messages, etc.)</li>
-            <li>Photo attaches automatically</li>
+          <ol className="text-xs text-slate-300 space-y-2 list-decimal list-inside">
+            <li>Click "Save & Share" button below</li>
+            <li>Choose where to save/share (Instagram, Messages, etc.)</li>
+            <li>Photo saves automatically</li>
             <li>Paste the caption from your clipboard</li>
-            <li>Post and engage! 🚀</li>
+            <li>Post and watch the engagement! 🚀</li>
           </ol>
         </div>
+
+        {/* Status Message */}
+        {message && (
+          <div className={`p-3 rounded-lg border transition-all ${
+            message.includes('failed') || message.includes('error')
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-primary-500/10 border-primary-500/30 text-primary-300'
+          }`}>
+            <p className="text-sm font-medium flex items-center gap-2">
+              {message.includes('failed') || message.includes('error') ? '❌' : '✓'}
+              {message}
+            </p>
+          </div>
+        )}
 
         {/* Main Share Button */}
         <Button
@@ -225,7 +241,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
           size="lg"
           icon={<Icon type="share" />}
           disabled={isSharing || isGeneratingCaption}
-          className="w-full text-lg py-4"
+          className="w-full text-base font-bold py-4"
         >
           {isSharing ? (
             <>
@@ -233,30 +249,13 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               Opening Share Sheet...
             </>
           ) : (
-            'Save/Share Photo'
+            '💾 Save & Share Photo'
           )}
         </Button>
 
-        {/* Status Message */}
-        {message && (
-          <div className={`p-3 rounded-lg border ${
-            message.includes('failed') || message.includes('error')
-              ? 'bg-red-500/10 border-red-500/30'
-              : 'bg-primary-500/10 border-primary-500/30'
-          }`}>
-            <p className={`text-sm font-medium ${
-              message.includes('failed') || message.includes('error')
-                ? 'text-red-300'
-                : 'text-primary-300'
-            }`}>
-              {message}
-            </p>
-          </div>
-        )}
-
         {/* Quick Actions */}
-        <div className="pt-4 border-t border-neutral-800 space-y-2">
-          <p className="text-xs font-semibold text-neutral-400 mb-2">Quick Actions:</p>
+        <div className="pt-3 border-t border-slate-700 space-y-3">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions</p>
           <div className="grid grid-cols-2 gap-3">
             <Button
               onClick={async () => {
@@ -276,12 +275,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               <Icon type="copy" className="w-4 h-4 mr-2" />
               Copy Caption
             </Button>
-            
+
             <Button
               onClick={async () => {
                 try {
                   await downloadImage(imageDataUrl, { format: 'jpeg', quality: 95 });
-                  setMessage('Photo saved to camera roll!');
+                  setMessage('Photo saved! ✓');
                   trackFeature('download_from_share_dialog', { location: 'export_dialog' });
                   setTimeout(() => setMessage(''), 2000);
                 } catch (e) {
@@ -299,16 +298,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         </div>
 
         {/* Close Button */}
-        <div className="pt-4 border-t border-neutral-800">
-          <Button
-            onClick={onClose}
-            variant="secondary"
-            size="sm"
-            className="w-full"
-          >
-            Close
-          </Button>
-        </div>
+        <Button
+          onClick={onClose}
+          variant="secondary"
+          size="sm"
+          className="w-full border-slate-700"
+        >
+          Close
+        </Button>
       </div>
     </Modal>
   );

@@ -16,6 +16,7 @@ interface SelectedStyle {
   fontWeight: 'normal' | 'bold';
   shadowBlur: number;
   textAlign: 'left' | 'center' | 'right';
+  fontFamily?: string;
 }
 
 export interface OverlaysPanelProps {
@@ -58,6 +59,7 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
       opacity: 1,
       fontSize: style.fontSize ?? 24,
       fontWeight: style.fontWeight ?? ('bold' as const),
+      fontFamily: style.fontFamily,
       textAlign: style.textAlign ?? ('center' as const),
       shadowBlur: style.shadowBlur ?? 2,
       shadowOffsetX: 0,

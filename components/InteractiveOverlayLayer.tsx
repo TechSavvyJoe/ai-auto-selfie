@@ -42,6 +42,9 @@ const OverlayHandle: React.FC<{
           ...style,
           color: t.color || '#fff',
           background: t.bgColor || 'rgba(0,0,0,0.35)',
+          fontFamily: t.fontFamily,
+          fontWeight: t.fontWeight,
+          fontSize: `${t.fontSize}px`,
           transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg) scale(${t.scale || 1})`,
           pointerEvents: 'auto',
         }}

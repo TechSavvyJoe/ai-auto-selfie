@@ -22,6 +22,7 @@ interface SelectedStyle {
   fontWeight: 'normal' | 'bold';
   shadowBlur: number;
   textAlign: 'left' | 'center' | 'right';
+  fontFamily?: string;
 }
 
 const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
@@ -386,6 +387,7 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
                         color: preset.color,
                         fontSize: '14px',
                         fontWeight: preset.fontWeight,
+                        fontFamily: preset.fontFamily,
                       }}
                       className="truncate"
                     >
@@ -433,6 +435,7 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
                     backgroundColor: selectedStyle.bgColor,
                     fontSize: `${selectedStyle.fontSize}px`,
                     fontWeight: selectedStyle.fontWeight,
+                    fontFamily: selectedStyle.fontFamily,
                     textShadow: textEffect.effectType !== 'none'
                       ? getTextEffectShadow()
                       : `0 0 ${selectedStyle.shadowBlur}px rgba(0,0,0,0.8)`,
