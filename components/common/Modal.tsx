@@ -37,9 +37,13 @@ export const Modal: React.FC<ModalProps> = ({
   className = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Store the element that had focus before the modal opened
+    previousActiveElement.current = document.activeElement as HTMLElement;
 
     // Handle escape key
     const handleEscape = (e: KeyboardEvent) => {
@@ -48,15 +52,50 @@ export const Modal: React.FC<ModalProps> = ({
       }
     };
 
+    // Handle focus trap (keep focus inside modal)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+
     // Prevent body scroll when modal is open
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    // Focus the modal dialog
+    setTimeout(() => {
+      const closeButton = modalRef.current?.querySelector('[aria-label="Close modal"]') as HTMLElement;
+      (closeButton || modalRef.current)?.focus?.();
+    }, 50);
+
     window.addEventListener('keydown', handleEscape);
+    modalRef.current?.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleEscape);
+      modalRef.current?.removeEventListener('keydown', handleKeyDown);
+
+      // Restore focus to the element that opened the modal
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus();
+      }
     };
   }, [isOpen, onClose, closeOnEscape]);
 
@@ -94,6 +133,7 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
+        tabIndex={-1}
       >
         {/* Header */}
         {(title || showCloseButton) && (

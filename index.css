@@ -172,25 +172,24 @@ body {
   }
 }
 
+/* Additional keyframe animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Utility classes */
 .fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fade-in-up {
-
-.gallery-item-enter {
-  animation: fadeInScale 0.4s ease-out;
-}
-
-.hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -211,7 +210,7 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, 
+  background: linear-gradient(90deg,
     rgba(255, 255, 255, 0) 0%,
     rgba(255, 255, 255, 0.1) 50%,
     rgba(255, 255, 255, 0) 100%);
@@ -224,18 +223,20 @@ body {
 }
 
 .float {
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
   animation: float 3s ease-in-out infinite;
+}
+
+.gallery-item-enter {
+  animation: fadeInScale 0.4s ease-out;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 /* Gradient background utilities to avoid inline styles */

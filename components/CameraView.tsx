@@ -740,7 +740,12 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         /* PORTRAIT LAYOUT - Original */
         <>
           {/* Top controls */}
-          <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
+          <div
+            className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm"
+            style={{
+              paddingTop: 'max(1rem, calc(env(safe-area-inset-top) + 0.75rem))',
+            }}
+          >
             {/* Aspect Ratio Selector */}
             <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
               {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
