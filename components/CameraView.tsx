@@ -42,6 +42,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
+  const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -90,6 +91,18 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         setCameras(videoDevices);
         if (videoDevices.length === 0) {
             setError("No camera found. Please ensure you have a camera connected and have granted permission.");
+        } else {
+          // Set initial camera - prefer rear camera if available
+          const rearCameras = videoDevices.filter(camera => 
+            !camera.label.toLowerCase().includes('front') && 
+            !camera.label.toLowerCase().includes('user') &&
+            !camera.label.toLowerCase().includes('selfie')
+          );
+          if (rearCameras.length > 0) {
+            setIsUsingFrontCamera(false);
+          } else {
+            setIsUsingFrontCamera(true);
+          }
         }
       } catch (err) {
         console.error("Error enumerating devices: ", err);
@@ -255,6 +268,88 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   
   const handleSwitchCamera = () => {
     setSelectedCameraIndex(prev => (prev + 1) % cameras.length);
+  };
+
+  // Helper function to categorize cameras
+  const getFrontCameras = () => cameras.filter(camera => 
+    camera.label.toLowerCase().includes('front') || 
+    camera.label.toLowerCase().includes('user') ||
+    camera.label.toLowerCase().includes('selfie')
+  );
+
+  const getRearCameras = () => cameras.filter(camera => 
+    !camera.label.toLowerCase().includes('front') && 
+    !camera.label.toLowerCase().includes('user') &&
+    !camera.label.toLowerCase().includes('selfie')
+  );
+
+  // Select the best rear camera based on capabilities (similar to Photos app)
+  const selectBestRearCamera = async () => {
+    const rearCameras = getRearCameras();
+    if (rearCameras.length === 0) return null;
+
+    // Try to get capabilities for each camera and pick the best one
+    const cameraScores = await Promise.all(
+      rearCameras.map(async (camera, index) => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: camera.deviceId } }
+          });
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities();
+          
+          // Score based on resolution, frame rate, and zoom capability
+          let score = 0;
+          if (capabilities.width && capabilities.width.max) {
+            score += Math.min(capabilities.width.max, 4096) / 1000; // Max 4 points for 4K
+          }
+          if (capabilities.height && capabilities.height.max) {
+            score += Math.min(capabilities.height.max, 2160) / 500; // Max 4 points for 4K
+          }
+          if (capabilities.frameRate && capabilities.frameRate.max) {
+            score += Math.min(capabilities.frameRate.max, 60) / 15; // Max 4 points for 60fps
+          }
+          if ('zoom' in capabilities) {
+            score += 1; // Bonus for zoom capability
+          }
+          
+          stream.getTracks().forEach(track => track.stop());
+          return { camera, index, score };
+        } catch (e) {
+          return { camera, index, score: 0 };
+        }
+      })
+    );
+
+    // Sort by score and return the best camera
+    cameraScores.sort((a, b) => b.score - a.score);
+    return cameraScores[0];
+  };
+
+  // Smart camera switching between front and rear
+  const handleSmartSwitchCamera = async () => {
+    const frontCameras = getFrontCameras();
+    const rearCameras = getRearCameras();
+
+    if (isUsingFrontCamera && rearCameras.length > 0) {
+      // Switching from front to rear - pick the best rear camera
+      const bestRear = await selectBestRearCamera();
+      if (bestRear) {
+        setSelectedCameraIndex(bestRear.index);
+        setIsUsingFrontCamera(false);
+      }
+    } else if (!isUsingFrontCamera && frontCameras.length > 0) {
+      // Switching from rear to front - pick the first front camera
+      const frontIndex = cameras.findIndex(camera => 
+        camera.label.toLowerCase().includes('front') || 
+        camera.label.toLowerCase().includes('user') ||
+        camera.label.toLowerCase().includes('selfie')
+      );
+      if (frontIndex !== -1) {
+        setSelectedCameraIndex(frontIndex);
+        setIsUsingFrontCamera(true);
+      }
+    }
   };
 
   // Tap-to-focus handler
@@ -561,10 +656,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
             {/* Switch Camera Button */}
             {cameras.length > 1 && (
               <button
-                onClick={handleSwitchCamera}
+                onClick={handleSmartSwitchCamera}
                 className="w-14 h-14 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
                 aria-label="Switch Camera"
-                title={`Switch camera (${cameras.length} available)`}
+                title={`Switch to ${isUsingFrontCamera ? 'rear' : 'front'} camera (${cameras.length} available)`}
               >
                 <Icon type="switchCamera" className="w-6 h-6 text-white group-hover:text-primary-200 transition-colors" />
               </button>
@@ -793,10 +888,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
             <div className="w-20 h-20 flex items-center justify-center">
               {cameras.length > 1 && (
                 <button
-                  onClick={handleSwitchCamera}
+                  onClick={handleSmartSwitchCamera}
                   className="w-16 h-16 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
                   aria-label="Switch Camera"
-                  title={`Switch camera (${cameras.length} available)`}
+                  title={`Switch to ${isUsingFrontCamera ? 'rear' : 'front'} camera (${cameras.length} available)`}
                 >
                   <Icon type="switchCamera" className="w-7 h-7 text-white group-hover:text-primary-200 transition-colors" />
                 </button>
