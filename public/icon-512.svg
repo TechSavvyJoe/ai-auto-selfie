@@ -1,0 +1,44 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <rect width="512" height="512" rx="112" fill="url(#gradient)"/>
+  
+  <!-- Camera icon -->
+  <g transform="translate(128, 128)">
+    <!-- Camera body -->
+    <rect x="20" y="64" width="216" height="152" rx="20" fill="white" opacity="0.95"/>
+    
+    <!-- Lens -->
+    <circle cx="128" cy="140" r="54" fill="#8b5cf6"/>
+    <circle cx="128" cy="140" r="38" fill="white" opacity="0.3"/>
+    <circle cx="128" cy="140" r="24" fill="#8b5cf6" opacity="0.5"/>
+    
+    <!-- Flash -->
+    <rect x="192" y="84" width="20" height="20" rx="5" fill="#ec4899"/>
+    
+    <!-- Viewfinder -->
+    <path d="M 54 42 L 84 42 L 102 64 L 54 64 Z" fill="white" opacity="0.95"/>
+    
+    <!-- Sparkles for AI -->
+    <g opacity="0.9">
+      <!-- Large sparkle top right -->
+      <path d="M 186 30 L 192 44 L 206 50 L 192 56 L 186 70 L 180 56 L 166 50 L 180 44 Z" fill="#fbbf24"/>
+      <!-- Medium sparkle bottom left -->
+      <path d="M 64 196 L 70 210 L 84 216 L 70 222 L 64 236 L 58 222 L 44 216 L 58 210 Z" fill="#fbbf24"/>
+      <!-- Small sparkle top left -->
+      <path d="M 30 90 L 34 100 L 44 104 L 34 108 L 30 118 L 26 108 L 16 104 L 26 100 Z" fill="#fbbf24" opacity="0.7"/>
+    </g>
+    
+    <!-- Settings dots -->
+    <circle cx="210" cy="190" r="8" fill="white" opacity="0.7"/>
+    <circle cx="230" cy="190" r="8" fill="white" opacity="0.7"/>
+  </g>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
