@@ -11,6 +11,15 @@ import Slider from './common/Slider';
 import AdjustmentPreview from './AdjustmentPreview';
 import OverlaysPanel from './OverlaysPanel';
 import AutoEnhancePanel from './AutoEnhancePanel';
+import FaceBeautyPanel from './FaceBeautyPanel';
+import BackgroundBlurPanel from './BackgroundBlurPanel';
+import ColorGradingPanel from './ColorGradingPanel';
+import StickerPanel from './StickerPanel';
+import AiModesPanel from './AiModesPanel';
+import PresetManagerPanel from './PresetManagerPanel';
+import { getFaceBeautyService, BeautySettings } from '../services/faceBeautyService';
+import { getBackgroundBlurService, BlurSettings } from '../services/backgroundBlurService';
+import { getColorGradingService, ColorGrade } from '../services/colorGradingService';
 
 interface EditViewProps {
   imageSrc: string;
@@ -50,6 +59,21 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [presetName, setPresetName] = useState('');
   const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
   const [overlays, setOverlays] = useState<OverlayItem[]>([]);
+
+  // ===== PHASE 2: VISUAL ENHANCEMENTS =====
+  const beautyService = getFaceBeautyService();
+  const blurService = getBackgroundBlurService();
+  const colorService = getColorGradingService();
+
+  const [beautySettings, setBeautySettings] = useState<BeautySettings>(beautyService.getDefaultSettings());
+  const [blurSettings, setBlurSettings] = useState<BlurSettings>(blurService.getDefaultSettings());
+  const [colorGrade, setColorGrade] = useState<ColorGrade>(colorService.getDefault());
+  const [showBeautyPanel, setShowBeautyPanel] = useState(false);
+  const [showBlurPanel, setShowBlurPanel] = useState(false);
+  const [showColorPanel, setShowColorPanel] = useState(false);
+  const [showStickerPanel, setShowStickerPanel] = useState(false);
+  const [showAiModesPanel, setShowAiModesPanel] = useState(false);
+  const [showPresetManager, setShowPresetManager] = useState(false);
 
   // Auto-generate caption when theme changes
   useEffect(() => {
@@ -438,6 +462,66 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
             {compareMode && <span className="text-xs bg-blue-500 px-2 py-1 rounded">ON</span>}
           </button>
         </div>
+
+        {/* ============================================ */}
+        {/* PHASE 2: VISUAL ENHANCEMENTS - QUICK ACCESS */}
+        {/* ============================================ */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <button
+            onClick={() => setShowBeautyPanel(!showBeautyPanel)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showBeautyPanel
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="Face Beauty"
+          >
+            ✨ Beauty
+          </button>
+          <button
+            onClick={() => setShowBlurPanel(!showBlurPanel)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showBlurPanel
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="Background Blur"
+          >
+            🌫️ Blur
+          </button>
+          <button
+            onClick={() => setShowColorPanel(!showColorPanel)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showColorPanel
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="Color Grading"
+          >
+            🎨 Color
+          </button>
+        </div>
+
+        {/* Beauty Panel */}
+        {showBeautyPanel && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <FaceBeautyPanel beautySettings={beautySettings} onChange={setBeautySettings} />
+          </div>
+        )}
+
+        {/* Blur Panel */}
+        {showBlurPanel && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <BackgroundBlurPanel blurSettings={blurSettings} onChange={setBlurSettings} />
+          </div>
+        )}
+
+        {/* Color Panel */}
+        {showColorPanel && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <ColorGradingPanel colorGrade={colorGrade} onChange={setColorGrade} />
+          </div>
+        )}
 
         {/* ============================================ */}
         {/* MAIN ENHANCE BUTTON - BOTTOM */}
