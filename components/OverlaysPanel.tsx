@@ -7,6 +7,17 @@ import { OverlayItem, TextOverlay, StickerOverlay, OverlayPosition } from '../ty
 
 const ProfessionalTextEditor = lazy(() => import('./ProfessionalTextEditor'));
 
+// Type for style passed from ProfessionalTextEditor
+interface SelectedStyle {
+  name: string;
+  color: string;
+  bgColor: string;
+  fontSize: number;
+  fontWeight: 'normal' | 'bold';
+  shadowBlur: number;
+  textAlign: 'left' | 'center' | 'right';
+}
+
 export interface OverlaysPanelProps {
   overlays: OverlayItem[];
   onChange: (overlays: OverlayItem[]) => void;
@@ -29,7 +40,7 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
     setShowTextEditor(true);
   };
 
-  const handleTextEditorSelect = (text: string, style: any) => {
+  const handleTextEditorSelect = (text: string, style: SelectedStyle) => {
     // Parse bgColor - handle rgba format
     let bgColorString = style.bgColor;
     if (typeof bgColorString !== 'string') {
@@ -40,15 +51,15 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
       id: `text_${Date.now()}`,
       type: 'text',
       text,
-      color: style.color || '#ffffff',
+      color: style.color ?? '#ffffff',
       bgColor: bgColorString,
       position: 'bottom',
       scale: 1,
       opacity: 1,
-      fontSize: style.fontSize || 24,
-      fontWeight: style.fontWeight || ('bold' as const),
-      textAlign: style.textAlign || ('center' as const),
-      shadowBlur: style.shadowBlur || 2,
+      fontSize: style.fontSize ?? 24,
+      fontWeight: style.fontWeight ?? ('bold' as const),
+      textAlign: style.textAlign ?? ('center' as const),
+      shadowBlur: style.shadowBlur ?? 2,
       shadowOffsetX: 0,
       shadowOffsetY: 2,
       shadowColor: '#000000',

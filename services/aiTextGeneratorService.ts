@@ -130,18 +130,36 @@ class AITextGeneratorService {
 
   /**
    * Extract base64 and mimeType from data URL
+   * Handles various data URL formats and blob URLs
    */
   private extractBase64AndMimeType(dataUrl: string): [string, string] {
     if (!dataUrl) return ['', 'image/jpeg'];
 
+    // Blob URLs cannot be parsed - return empty to trigger defaults
+    if (dataUrl.startsWith('blob:')) {
+      console.info('Cannot extract base64 from blob: URL - using default suggestions');
+      return ['', 'image/jpeg'];
+    }
+
     try {
       const parts = dataUrl.split(',');
-      if (parts.length !== 2) return ['', 'image/jpeg'];
+      if (parts.length !== 2) {
+        console.warn('Invalid data URL format, expected data:mime;base64,data');
+        return ['', 'image/jpeg'];
+      }
 
       const metadata = parts[0];
       const base64 = parts[1];
-      const mimeMatch = metadata.match(/:(.*?);/);
+
+      // Handle both "data:image/jpeg;base64" and "data:image/jpeg"
+      const mimeMatch = metadata.match(/:(.*?)(;|$)/);
       const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+      // Validate base64 is not empty
+      if (!base64 || base64.length === 0) {
+        console.warn('Data URL contains empty base64 data');
+        return ['', mimeType];
+      }
 
       return [base64, mimeType];
     } catch (error) {

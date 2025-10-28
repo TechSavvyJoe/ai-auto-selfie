@@ -37,6 +37,40 @@ class SmartDownloadService {
   }
 
   /**
+   * Convert data URL to Blob without using fetch
+   * Fixes: Cannot fetch data: URLs
+   */
+  private dataUrlToBlob(dataUrl: string): Blob {
+    try {
+      const arr = dataUrl.split(',');
+      if (arr.length !== 2) {
+        throw new Error('Invalid data URL format');
+      }
+
+      const metadata = arr[0];
+      const base64String = arr[1];
+
+      // Extract mime type from metadata (e.g., "data:image/jpeg;base64")
+      const mimeMatch = metadata.match(/:(.*?)(;|$)/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+      // Decode base64 to binary string
+      const binaryString = atob(base64String);
+      const bytes = new Uint8Array(binaryString.length);
+
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      return new Blob([bytes], { type: mimeType });
+    } catch (error) {
+      console.error('Error converting data URL to blob:', error);
+      // Fallback to JPEG blob
+      return new Blob([], { type: 'image/jpeg' });
+    }
+  }
+
+  /**
    * Smart download - uses best available method for platform
    */
   async smartDownload(
@@ -48,16 +82,18 @@ class SmartDownloadService {
     const fullFileName = fileName + '-' + timestamp;
 
     try {
-      if (this.canUseShareAPI()) {
-        return await this.downloadViaShareAPI(imageDataUrl, fullFileName, platform);
-      }
-
+      // Check platform FIRST to use platform-specific methods
       if (platform === 'ios') {
         return await this.downloadToIOSCameraRoll(imageDataUrl, fullFileName);
       }
 
       if (platform === 'android') {
         return await this.downloadToAndroidPhotos(imageDataUrl, fullFileName);
+      }
+
+      // For desktop/unknown, try Share API then standard download
+      if (this.canUseShareAPI()) {
+        return await this.downloadViaShareAPI(imageDataUrl, fullFileName, platform);
       }
 
       return this.downloadViaStandardMethod(imageDataUrl, fullFileName, platform);
@@ -81,9 +117,9 @@ class SmartDownloadService {
     platform: string
   ): Promise<DownloadResult> {
     try {
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
-      const file = new File([blob], fileName + '.jpg', { type: 'image/jpeg' });
+      // Use helper method instead of fetch
+      const blob = this.dataUrlToBlob(imageDataUrl);
+      const file = new File([blob], fileName + '.jpg', { type: blob.type });
 
       if (navigator.share) {
         await navigator.share({
@@ -114,8 +150,8 @@ class SmartDownloadService {
     fileName: string
   ): Promise<DownloadResult> {
     try {
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
+      // Use helper method instead of fetch
+      const blob = this.dataUrlToBlob(imageDataUrl);
 
       if (navigator.clipboard && navigator.clipboard.write) {
         const item = new ClipboardItem({ 'image/jpeg': blob });
@@ -143,11 +179,11 @@ class SmartDownloadService {
     fileName: string
   ): Promise<DownloadResult> {
     try {
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
+      // Use helper method instead of fetch
+      const blob = this.dataUrlToBlob(imageDataUrl);
 
       if (this.canUseShareAPI()) {
-        const file = new File([blob], fileName + '.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], fileName + '.jpg', { type: blob.type });
         await navigator.share({
           files: [file],
           title: 'Save Photo',
@@ -193,9 +229,10 @@ class SmartDownloadService {
 
       return {
         success: true,
-        message: platform === 'desktop'
-          ? 'Photo downloaded to Downloads folder!'
-          : 'Photo saved! Check your Downloads folder.',
+        message:
+          platform === 'desktop'
+            ? 'Photo downloaded to Downloads folder!'
+            : 'Photo saved! Check your Downloads folder.',
         method: 'download',
         platform: platform as any,
       };
