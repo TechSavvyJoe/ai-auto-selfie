@@ -75,53 +75,68 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const handleSharePhoto = useCallback(async () => {
     try {
       setIsSharing(true);
-      setMessage('Preparing to share...');
+      setMessage('Preparing to save and share...');
 
-      // Copy caption to clipboard first so user can paste it
+      // Step 1: Copy caption to clipboard first
       try {
         await navigator.clipboard.writeText(caption);
+        setMessage('Caption copied to clipboard ✓');
         trackFeature('caption_copied_auto', { location: 'export_dialog' });
       } catch (clipboardError) {
         console.warn('Could not copy caption to clipboard:', clipboardError);
+        setMessage('Warning: Could not copy caption');
       }
 
-      // Convert data URL to blob for Web Share API
+      // Step 2: Convert data URL to blob for saving/sharing
       const response = await fetch(imageDataUrl);
       const blob = await response.blob();
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
 
-      // Check if Web Share API is available
+      // Step 3: Try to save to camera roll first (iOS/Android)
+      let savedToCameraRoll = false;
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: 'AI Auto Selfie',
-          text: caption,
-          files: [file],
-        });
-        setMessage('Shared! Caption is in your clipboard - paste it in your post.');
-        trackFeature('web_share_success', { location: 'export_dialog' });
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-        }, 2000);
-      } else {
-        // Fallback: just download the image
-        setMessage('Share not supported. Downloading image instead. Caption is copied - paste it manually.');
+        try {
+          // On iOS, sharing an image gives option to "Save to Photos"
+          // We'll open share sheet which includes save option
+          setMessage('Opening share options (includes Save to Photos)...');
+          await navigator.share({
+            title: 'AI Auto Selfie',
+            text: caption,
+            files: [file],
+          });
+          setMessage('Shared! Caption is in your clipboard.');
+          savedToCameraRoll = true;
+          trackFeature('web_share_success', { location: 'export_dialog' });
+          setTimeout(() => {
+            onSuccess?.();
+            onClose();
+          }, 2000);
+        } catch (shareError) {
+          if ((shareError as Error).name === 'AbortError') {
+            // User cancelled share sheet
+            setMessage('Share cancelled. Caption is still copied.');
+            setIsSharing(false);
+            return;
+          }
+          // Share failed, fall through to download
+          console.warn('Share failed, trying download:', shareError);
+        }
+      }
+      
+      // Step 4: Fallback to direct download if share not available or failed
+      if (!savedToCameraRoll) {
+        setMessage('Downloading image... Caption is copied - paste it in your post.');
         await downloadImage(imageDataUrl, { format: 'jpeg', quality: 95 });
         trackFeature('share_fallback_download', { location: 'export_dialog' });
+        setMessage('Downloaded! Caption is in your clipboard - paste it when sharing.');
         setTimeout(() => {
           onSuccess?.();
           onClose();
-        }, 2000);
+        }, 2500);
       }
     } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        // User cancelled share sheet
-        setMessage('Share cancelled');
-        setIsSharing(false);
-        return;
-      }
-      console.error('Share failed:', error);
-      setMessage(`Share failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Save/Share failed:', error);
+      setMessage(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
     } finally {
       setIsSharing(false);
     }
@@ -218,7 +233,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               Opening Share Sheet...
             </>
           ) : (
-            'Share Photo'
+            'Save/Share Photo'
           )}
         </Button>
 

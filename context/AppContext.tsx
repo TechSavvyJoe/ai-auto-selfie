@@ -141,6 +141,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProcessingStartTime(startTime);
     let messageInterval: number | undefined;
 
+    // Retry configuration
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 2000;
+    const TIMEOUT_MS = 60000; // 60 second timeout
+
     try {
       let msgIndex = 0;
       setLoadingMessage(loadingMessages[msgIndex]);
@@ -149,9 +154,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLoadingMessage(loadingMessages[msgIndex]);
       }, 2500);
 
-  const base64Image = dataUrlToBase64(originalImage);
-  const enhancedBase64 = await enhanceImageWithAI(base64Image, 'image/jpeg', options);
-
+      const base64Image = dataUrlToBase64(originalImage);
+      
+      // Retry logic with timeout
+      let enhancedBase64: string | null = null;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 1) {
+            setLoadingMessage(`Retrying enhancement (attempt ${attempt}/${MAX_RETRIES})...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          }
+          
+          // Create timeout promise
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Enhancement timed out. Please try again.')), TIMEOUT_MS);
+          });
+          
+          // Race between enhancement and timeout
+          enhancedBase64 = await Promise.race([
+            enhanceImageWithAI(base64Image, 'image/jpeg', options),
+            timeoutPromise
+          ]);
+          
+          // Success - break retry loop
+          if (enhancedBase64) break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error('Enhancement failed');
+          console.error(`Enhancement attempt ${attempt} failed:`, err);
+          
+          // Don't retry on timeout or if it's the last attempt
+          if (err instanceof Error && err.message.includes('timed out')) {
+            throw err;
+          }
+          if (attempt === MAX_RETRIES) {
+            throw new Error(`Enhancement failed after ${MAX_RETRIES} attempts. ${lastError.message}`);
+          }
+        }
+      }
+      
       if (enhancedBase64) {
         let newImageUrl = `data:image/jpeg;base64,${enhancedBase64}`;
         // Apply overlays client-side after AI enhancement if provided

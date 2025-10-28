@@ -1,15 +1,12 @@
-import React, { useCallback, useState, lazy } from 'react';
+import React, { useCallback, useState } from 'react';
 import { PremiumButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 import BeforeAfterSlider from './BeforeAfterSlider';
 import { useToast } from './common/ToastContainer';
 import CaptionEditor from './CaptionEditor';
 import { useAppContext } from '../context/AppContext';
-import { shareViaWebShare } from '../services/exportService';
+import ExportDialog from './ExportDialog';
 import { useAnalytics } from '../services/analyticsService';
-import { getSmartDownloadService } from '../services/smartDownloadService';
-
-const PremiumExportDialog = lazy(() => import('./PremiumExportDialog'));
 
 interface ResultViewProps {
   imageSrc: string;
@@ -24,7 +21,6 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
   const { trackFeature } = useAnalytics();
   const [showComparison, setShowComparison] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [isQuickSharing, setIsQuickSharing] = useState(false);
 
   const handleCaptionSave = useCallback((newCaption: string) => {
     updateCaption(newCaption);
@@ -32,44 +28,7 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
     trackFeature('edit_caption', { location: 'result_view' });
   }, [updateCaption, showToast, trackFeature]);
 
-  const handleSave = useCallback(async () => {
-    try {
-      const downloadService = getSmartDownloadService();
-      const result = await downloadService.smartDownload(imageSrc, 'enhanced-photo');
-
-      if (result.success) {
-        showToast(result.message, 'success');
-        trackFeature('download_image', { method: result.method, platform: result.platform });
-      } else {
-        showToast(result.message, 'error');
-      }
-    } catch (error) {
-      showToast('Failed to save image. Please try again.', 'error');
-      console.error('Save error:', error);
-    }
-  }, [imageSrc, showToast, trackFeature]);
-
-  const handleQuickShare = useCallback(async () => {
-    if (!('share' in navigator)) {
-      showToast('Device sharing not supported here', 'warning');
-      setShowExport(true);
-      return;
-    }
-    try {
-      setIsQuickSharing(true);
-      await shareViaWebShare(imageSrc, {
-        platform: 'facebook',
-        title: 'AI Auto Selfie',
-        message: autoCaption || undefined,
-      });
-      showToast('Opening device share…', 'success');
-    } catch (error) {
-      showToast('Quick share failed, opening dialog', 'warning');
-      setShowExport(true);
-    } finally {
-      setIsQuickSharing(false);
-    }
-  }, [imageSrc, autoCaption, showToast]);
+  // Consolidated Save/Share handled via ExportDialog
 
   return (
     <div className="w-full h-full relative flex flex-col items-center justify-center bg-black p-4">
@@ -95,29 +54,7 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
             compactMode={true}
             className="mb-2"
           />
-          <div className="flex gap-2">
-            <PremiumButton
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(autoCaption);
-                  trackFeature('copy_caption', { location: 'result_view' });
-                  showToast('Caption copied', 'success');
-                } catch {
-                  showToast('Copy failed', 'error');
-                }
-              }}
-              variant="secondary"
-              size="sm"
-              icon={<Icon type="copy" className="w-3 h-3" />}
-            >
-              Copy
-            </PremiumButton>
-            {'share' in navigator && (
-              <PremiumButton onClick={handleQuickShare} variant="primary" size="sm" disabled={isQuickSharing} icon={<span>✨</span>}>
-                {isQuickSharing ? 'Sharing…' : 'Quick Share'}
-              </PremiumButton>
-            )}
-          </div>
+          {/* Copy/Quick Share removed to simplify to single Save/Share flow */}
         </div>
       )}
 
@@ -139,15 +76,12 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
         <PremiumButton onClick={onViewGallery} variant="secondary" size="md" icon={<Icon type="history" className="w-4 h-4" />} className="w-full sm:w-auto">
           Gallery
         </PremiumButton>
-        <PremiumButton onClick={handleSave} variant="primary" size="md" icon={<Icon type="download" className="w-4 h-4" />} className="w-full sm:w-auto">
-          Download
-        </PremiumButton>
         <PremiumButton onClick={() => setShowExport(true)} variant="success" size="md" icon={<Icon type="share" className="w-4 h-4" />} className="w-full sm:w-auto">
-          Share
+          Save/Share
         </PremiumButton>
       </div>
 
-      <PremiumExportDialog
+      <ExportDialog
         isOpen={showExport}
         onClose={() => setShowExport(false)}
         imageDataUrl={imageSrc}

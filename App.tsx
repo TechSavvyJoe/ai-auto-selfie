@@ -30,7 +30,7 @@ const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
 const BatchEnhancePanel = lazy(() => import('./components/BatchEnhancePanel'));
 const PremiumDesktopStartView = lazy(() => import('./components/PremiumDesktopStartView'));
 const EnhancedDesktopGalleryView = lazy(() => import('./components/EnhancedDesktopGalleryView'));
-const PremiumExportDialog = lazy(() => import('./components/PremiumExportDialog'));
+// PremiumExportDialog no longer used; simplified ExportDialog is used within ResultView
 
 interface StartViewProps {
   onStart: () => void;

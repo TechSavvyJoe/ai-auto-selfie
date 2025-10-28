@@ -53,8 +53,28 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   const [recordingTime, setRecordingTime] = useState(0);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [exposureCompensation, setExposureCompensation] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(1);
+  const [isLandscape, setIsLandscape] = useState(false);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const levelRef = useRef<HTMLDivElement>(null);
+
+  // Detect orientation changes
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      const isLand = window.innerWidth > window.innerHeight;
+      setIsLandscape(isLand);
+    };
+    
+    handleOrientationChange(); // Check on mount
+    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
+    return () => {
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
 
   useEffect(() => {
     const getDevices = async () => {
@@ -136,6 +156,12 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
           // Set focus mode
           if ('focusMode' in capabilities) {
             settings.focusMode = 'continuous';
+          }
+          
+          // Detect max zoom capability
+          if ('zoom' in capabilities && typeof capabilities.zoom === 'object') {
+            const zoomCap = capabilities.zoom as { max?: number; min?: number };
+            setMaxZoom(zoomCap.max || 1);
           }
           
           try {
@@ -291,6 +317,18 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
     return <div className="w-full h-full flex items-center justify-center p-4 bg-red-900/50 text-center">{error}</div>;
   }
 
+  // Apply zoom changes
+  useEffect(() => {
+    if (!streamRef.current) return;
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (videoTrack && 'zoom' in videoTrack.getCapabilities()) {
+      videoTrack.applyConstraints({
+        // @ts-ignore - zoom is not in standard types yet
+        advanced: [{ zoom: zoomLevel }]
+      }).catch(e => console.warn('Zoom not applied:', e));
+    }
+  }, [zoomLevel]);
+
   // Determine if camera feed should be mirrored. Typically, 'user' (front) facing cameras are mirrored.
   const isFrontCamera = cameras[selectedCameraIndex]?.label.toLowerCase().includes('front');
 
@@ -302,7 +340,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
   }, [levelAngle]);
   
   return (
-    <div className="w-full h-full relative bg-black">
+    <div className="w-full h-full relative bg-black overflow-hidden">
       <video
         ref={videoRef}
         autoPlay
@@ -326,180 +364,407 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         </div>
       )}
 
-      {/* Top controls */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm">
-        {/* Aspect Ratio Selector */}
-        <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
-          {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
-            <button
-              key={ratio}
-              onClick={() => setAspectRatio(ratio)}
-              className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                aspectRatio === ratio
-                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105 shadow-primary-500/30'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-              }`}
-              title={`Aspect ratio ${ratio}`}
-            >
-              {ratio}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <PremiumButton
-            variant={showAdvancedSettings ? "primary" : "secondary"}
-            size="sm"
-            icon={<span className="text-lg">⚙️</span>}
-            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-            className="text-sm"
-          >
-            Settings
-          </PremiumButton>
-
-          <div className="flex items-center justify-end gap-2">
-            <IconButton
-              icon={<Icon type="grid" className="w-5 h-5" />}
-              variant={showGrid ? "primary" : "secondary"}
-              size="md"
-              tooltip="Toggle grid overlay"
-              onClick={() => setShowGrid((s) => !s)}
-            />
-            <IconButton
-              icon={<Icon type="timer" className="w-5 h-5" />}
-              variant={timerEnabled ? "primary" : "secondary"}
-              size="md"
-              tooltip="3s countdown timer"
-              onClick={() => setTimerEnabled((t) => !t)}
-            />
-          </div>
-        </div>
-
-        {/* Advanced Settings Panel */}
-        {showAdvancedSettings && (
-          <div className="glass rounded-xl p-4 shadow-xl space-y-4 animate-in slide-in-from-top duration-300 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md">
-            {/* Exposure Compensation */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-white/90 font-semibold">
-                  ✨ Exposure
-                </label>
-                <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
-                  {exposureCompensation > 0 ? '+' : ''}{exposureCompensation.toFixed(1)}
-                </span>
+      {/* LANDSCAPE LAYOUT */}
+      {isLandscape ? (
+        <>
+          {/* Left side controls */}
+          <div className="absolute left-0 top-0 bottom-0 p-4 flex flex-col justify-between bg-gradient-to-r from-black/60 via-black/20 to-transparent backdrop-blur-sm max-w-xs">
+            {/* Top controls */}
+            <div className="flex flex-col gap-3">
+              {/* Aspect Ratio Selector */}
+              <div className="flex flex-col gap-2 glass rounded-xl p-2 shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
+                {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
+                  <button
+                    key={ratio}
+                    onClick={() => setAspectRatio(ratio)}
+                    className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                      aspectRatio === ratio
+                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105 shadow-primary-500/30'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }`}
+                    title={`Aspect ratio ${ratio}`}
+                  >
+                    {ratio}
+                  </button>
+                ))}
               </div>
-              <input
-                type="range"
-                min="-3"
-                max="3"
-                step="0.5"
-                value={exposureCompensation}
-                onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
-              />
-              <div className="text-xs text-white/60 flex justify-between mt-2">
-                <span>🌙 Dark</span>
-                <span>☀️ Bright</span>
-              </div>
-            </div>
 
-            {/* Quick presets */}
-            <div className="grid grid-cols-3 gap-2 pt-2">
-              <PremiumButton
-                variant={exposureCompensation === 0 ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setExposureCompensation(0)}
-              >
-                Reset
-              </PremiumButton>
-              <PremiumButton
-                variant={exposureCompensation === -1.5 ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setExposureCompensation(-1.5)}
-              >
-                Dark
-              </PremiumButton>
-              <PremiumButton
-                variant={exposureCompensation === 1.5 ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setExposureCompensation(1.5)}
-              >
-                Bright
-              </PremiumButton>
-            </div>
-          </div>
-        )}
-      </div>
-      {/* Recording indicator */}
-      {isRecording && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 glass bg-red-600/90 text-white px-5 py-2.5 rounded-full flex items-center gap-2.5 shadow-xl animate-pulse-slow">
-          <div className="w-2.5 h-2.5 bg-white rounded-full shadow-glow"></div>
-          <span className="text-sm font-bold">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
-        </div>
-      )}
-
-      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent backdrop-blur-md flex justify-center items-center gap-6 md:gap-10">
-        {/* Mode Toggle */}
-        <div className="w-20 h-16 flex items-center justify-center">
-          <PremiumButton
-            variant={isVideoMode ? "danger" : "primary"}
-            size="md"
-            icon={isVideoMode ? <span className="text-lg">🎥</span> : <span className="text-lg">📷</span>}
-            onClick={() => setIsVideoMode(!isVideoMode)}
-            className="whitespace-nowrap"
-          >
-            {isVideoMode ? 'Video' : 'Photo'}
-          </PremiumButton>
-        </div>
-
-        {/* Switch Camera Button */}
-        <div className="w-20 h-20 flex items-center justify-center">
-            {cameras.length > 1 && (
-                <button
-                    onClick={handleSwitchCamera}
-                    className="w-16 h-16 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
-                    aria-label="Switch Camera"
-                    title={`Switch camera (${cameras.length} available)`}
+              <div className="flex flex-col gap-2">
+                <IconButton
+                  icon={<Icon type="grid" className="w-5 h-5" />}
+                  variant={showGrid ? "primary" : "secondary"}
+                  size="md"
+                  tooltip="Toggle grid overlay"
+                  onClick={() => setShowGrid((s) => !s)}
+                  fullWidth
+                />
+                <IconButton
+                  icon={<Icon type="timer" className="w-5 h-5" />}
+                  variant={timerEnabled ? "primary" : "secondary"}
+                  size="md"
+                  tooltip="3s countdown timer"
+                  onClick={() => setTimerEnabled((t) => !t)}
+                  fullWidth
+                />
+                <PremiumButton
+                  variant={showAdvancedSettings ? "primary" : "secondary"}
+                  size="sm"
+                  icon={<span className="text-lg">⚙️</span>}
+                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                  className="text-sm"
+                  fullWidth
                 >
-                    <Icon type="switchCamera" className="w-7 h-7 text-white group-hover:text-primary-200 transition-colors" />
-                </button>
-            )}
-        </div>
-
-        {/* Capture/Record Button */}
-        {isVideoMode ? (
-          <button
-            onClick={isRecording ? stopVideoRecording : startVideoRecording}
-            className={`w-24 h-24 rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-red-500/50 active:scale-90 transition-all duration-200 group shadow-2xl ${
-              isRecording
-                ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-500/40'
-                : 'glass border-white hover:border-primary-400 hover:bg-white/20 hover:shadow-lg hover:shadow-primary-500/20'
-            }`}
-            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-            title={isRecording ? 'Stop recording (spacebar)' : 'Start recording (spacebar)'}
-          >
-            {isRecording ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-3 h-3 bg-white rounded-sm animate-pulse"></div>
-                <div className="w-3 h-3 bg-white rounded-sm animate-pulse recording-pulse-delayed"></div>
+                  Settings
+                </PremiumButton>
               </div>
-            ) : (
-              <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-80 transition-transform duration-200 shadow-glow"></div>
-            )}
-          </button>
-        ) : (
-          <button
-            onClick={handleCapture}
-            className="w-24 h-24 rounded-full border-4 border-white focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group bg-gradient-to-br from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 shadow-2xl hover:shadow-lg hover:shadow-primary-500/40"
-            aria-label="Take Picture"
-            title="Take photo (spacebar)"
-          >
-              <div className="w-full h-full rounded-full bg-white/90 scale-75 group-hover:scale-80 transition-transform duration-200 shadow-lg"></div>
-          </button>
-        )}
 
-        <div className="w-20 h-16" />
-      </div>
+              {/* Advanced Settings Panel */}
+              {showAdvancedSettings && (
+                <div className="glass rounded-xl p-3 shadow-xl space-y-3 animate-in slide-in-from-left duration-300 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md">
+                  {/* Exposure Compensation */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-white/90 font-semibold">
+                        ✨ Exposure
+                      </label>
+                      <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+                        {exposureCompensation > 0 ? '+' : ''}{exposureCompensation.toFixed(1)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-3"
+                      max="3"
+                      step="0.5"
+                      value={exposureCompensation}
+                      onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                      aria-label="Exposure compensation"
+                      title={`Exposure: ${exposureCompensation.toFixed(1)}`}
+                    />
+                  </div>
+
+                  {/* Zoom Control */}
+                  {maxZoom > 1 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-white/90 font-semibold">
+                          🔍 Zoom
+                        </label>
+                        <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+                          {zoomLevel.toFixed(1)}x
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max={maxZoom}
+                        step="0.1"
+                        value={zoomLevel}
+                        onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                        aria-label="Zoom level"
+                        title={`Zoom: ${zoomLevel.toFixed(1)}x`}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom mode toggle */}
+            <div className="flex flex-col gap-2">
+              <PremiumButton
+                variant={isVideoMode ? "danger" : "primary"}
+                size="md"
+                icon={isVideoMode ? <span className="text-lg">🎥</span> : <span className="text-lg">📷</span>}
+                onClick={() => setIsVideoMode(!isVideoMode)}
+                fullWidth
+              >
+                {isVideoMode ? 'Video' : 'Photo'}
+              </PremiumButton>
+            </div>
+          </div>
+
+          {/* Right side - Shutter & Switch */}
+          <div className="absolute right-0 top-0 bottom-0 p-4 flex flex-col justify-center items-center gap-6 bg-gradient-to-l from-black/60 via-black/20 to-transparent backdrop-blur-sm">
+            {/* Switch Camera Button */}
+            {cameras.length > 1 && (
+              <button
+                onClick={handleSwitchCamera}
+                className="w-14 h-14 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
+                aria-label="Switch Camera"
+                title={`Switch camera (${cameras.length} available)`}
+              >
+                <Icon type="switchCamera" className="w-6 h-6 text-white group-hover:text-primary-200 transition-colors" />
+              </button>
+            )}
+
+            {/* Capture/Record Button - CENTER RIGHT */}
+            {isVideoMode ? (
+              <button
+                onClick={isRecording ? stopVideoRecording : startVideoRecording}
+                className={`w-20 h-20 rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-red-500/50 active:scale-90 transition-all duration-200 group shadow-2xl ${
+                  isRecording
+                    ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-500/40'
+                    : 'glass border-white hover:border-primary-400 hover:bg-white/20 hover:shadow-lg hover:shadow-primary-500/20'
+                }`}
+                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                title={isRecording ? 'Stop recording (spacebar)' : 'Start recording (spacebar)'}
+              >
+                {isRecording ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-3 h-3 bg-white rounded-sm animate-pulse"></div>
+                    <div className="w-3 h-3 bg-white rounded-sm animate-pulse recording-pulse-delayed"></div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-80 transition-transform duration-200 shadow-glow"></div>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleCapture}
+                className="w-20 h-20 rounded-full border-4 border-white focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group bg-gradient-to-br from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 shadow-2xl hover:shadow-lg hover:shadow-primary-500/40"
+                aria-label="Take Picture"
+                title="Take photo (spacebar)"
+              >
+                <div className="w-full h-full rounded-full bg-white/90 scale-75 group-hover:scale-80 transition-transform duration-200 shadow-lg"></div>
+              </button>
+            )}
+
+            {/* Zoom quick controls (if available) */}
+            {maxZoom > 1 && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setZoomLevel(Math.min(maxZoom, zoomLevel + 0.5))}
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-white font-bold hover:bg-white/20 active:scale-90 transition-all"
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-white font-bold hover:bg-white/20 active:scale-90 transition-all"
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+              </div>
+            )}
+          </div>
+
+
+          {/* Recording indicator - top center */}
+          {isRecording && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 glass bg-red-600/90 text-white px-5 py-2.5 rounded-full flex items-center gap-2.5 shadow-xl animate-pulse-slow">
+              <div className="w-2.5 h-2.5 bg-white rounded-full shadow-glow"></div>
+              <span className="text-sm font-bold">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        /* PORTRAIT LAYOUT - Original */
+        <>
+          {/* Top controls */}
+          <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm">
+            {/* Aspect Ratio Selector */}
+            <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
+              {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
+                <button
+                  key={ratio}
+                  onClick={() => setAspectRatio(ratio)}
+                  className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                    aspectRatio === ratio
+                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105 shadow-primary-500/30'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                  }`}
+                  title={`Aspect ratio ${ratio}`}
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <PremiumButton
+                variant={showAdvancedSettings ? "primary" : "secondary"}
+                size="sm"
+                icon={<span className="text-lg">⚙️</span>}
+                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                className="text-sm"
+              >
+                Settings
+              </PremiumButton>
+
+              <div className="flex items-center justify-end gap-2">
+                <IconButton
+                  icon={<Icon type="grid" className="w-5 h-5" />}
+                  variant={showGrid ? "primary" : "secondary"}
+                  size="md"
+                  tooltip="Toggle grid overlay"
+                  onClick={() => setShowGrid((s) => !s)}
+                />
+                <IconButton
+                  icon={<Icon type="timer" className="w-5 h-5" />}
+                  variant={timerEnabled ? "primary" : "secondary"}
+                  size="md"
+                  tooltip="3s countdown timer"
+                  onClick={() => setTimerEnabled((t) => !t)}
+                />
+              </div>
+            </div>
+
+            {/* Advanced Settings Panel */}
+            {showAdvancedSettings && (
+              <div className="glass rounded-xl p-4 shadow-xl space-y-4 animate-in slide-in-from-top duration-300 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md">
+                {/* Exposure Compensation */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-white/90 font-semibold">
+                      ✨ Exposure
+                    </label>
+                    <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+                      {exposureCompensation > 0 ? '+' : ''}{exposureCompensation.toFixed(1)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-3"
+                    max="3"
+                    step="0.5"
+                    value={exposureCompensation}
+                    onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                  />
+                  <div className="text-xs text-white/60 flex justify-between mt-2">
+                    <span>🌙 Dark</span>
+                    <span>☀️ Bright</span>
+                  </div>
+                </div>
+
+                {/* Zoom Control in Portrait */}
+                {maxZoom > 1 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-white/90 font-semibold">
+                        🔍 Zoom
+                      </label>
+                      <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+                        {zoomLevel.toFixed(1)}x
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max={maxZoom}
+                      step="0.1"
+                      value={zoomLevel}
+                      onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
+                    />
+                  </div>
+                )}
+
+                {/* Quick presets */}
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  <PremiumButton
+                    variant={exposureCompensation === 0 ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setExposureCompensation(0)}
+                  >
+                    Reset
+                  </PremiumButton>
+                  <PremiumButton
+                    variant={exposureCompensation === -1.5 ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setExposureCompensation(-1.5)}
+                  >
+                    Dark
+                  </PremiumButton>
+                  <PremiumButton
+                    variant={exposureCompensation === 1.5 ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setExposureCompensation(1.5)}
+                  >
+                    Bright
+                  </PremiumButton>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Recording indicator */}
+          {isRecording && (
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 glass bg-red-600/90 text-white px-5 py-2.5 rounded-full flex items-center gap-2.5 shadow-xl animate-pulse-slow">
+              <div className="w-2.5 h-2.5 bg-white rounded-full shadow-glow"></div>
+              <span className="text-sm font-bold">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent backdrop-blur-md flex justify-center items-center gap-6 md:gap-10">
+            {/* Mode Toggle */}
+            <div className="w-20 h-16 flex items-center justify-center">
+              <PremiumButton
+                variant={isVideoMode ? "danger" : "primary"}
+                size="md"
+                icon={isVideoMode ? <span className="text-lg">🎥</span> : <span className="text-lg">📷</span>}
+                onClick={() => setIsVideoMode(!isVideoMode)}
+                className="whitespace-nowrap"
+              >
+                {isVideoMode ? 'Video' : 'Photo'}
+              </PremiumButton>
+            </div>
+
+            {/* Switch Camera Button */}
+            <div className="w-20 h-20 flex items-center justify-center">
+              {cameras.length > 1 && (
+                <button
+                  onClick={handleSwitchCamera}
+                  className="w-16 h-16 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
+                  aria-label="Switch Camera"
+                  title={`Switch camera (${cameras.length} available)`}
+                >
+                  <Icon type="switchCamera" className="w-7 h-7 text-white group-hover:text-primary-200 transition-colors" />
+                </button>
+              )}
+            </div>
+
+            {/* Capture/Record Button */}
+            {isVideoMode ? (
+              <button
+                onClick={isRecording ? stopVideoRecording : startVideoRecording}
+                className={`w-24 h-24 rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-red-500/50 active:scale-90 transition-all duration-200 group shadow-2xl ${
+                  isRecording
+                    ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-500/40'
+                    : 'glass border-white hover:border-primary-400 hover:bg-white/20 hover:shadow-lg hover:shadow-primary-500/20'
+                }`}
+                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                title={isRecording ? 'Stop recording (spacebar)' : 'Start recording (spacebar)'}
+              >
+                {isRecording ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-3 h-3 bg-white rounded-sm animate-pulse"></div>
+                    <div className="w-3 h-3 bg-white rounded-sm animate-pulse recording-pulse-delayed"></div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-80 transition-transform duration-200 shadow-glow"></div>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleCapture}
+                className="w-24 h-24 rounded-full border-4 border-white focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group bg-gradient-to-br from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 shadow-2xl hover:shadow-lg hover:shadow-primary-500/40"
+                aria-label="Take Picture"
+                title="Take photo (spacebar)"
+              >
+                <div className="w-full h-full rounded-full bg-white/90 scale-75 group-hover:scale-80 transition-transform duration-200 shadow-lg"></div>
+              </button>
+            )}
+
+            <div className="w-20 h-16" />
+          </div>
+        </>
+      )}
 
       <style>{`
         .recording-pulse-delayed {

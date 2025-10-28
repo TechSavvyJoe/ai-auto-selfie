@@ -470,6 +470,7 @@ ${getAdjustmentHints(adjustments)}
           'Clean white or brand color'}
 - Effect: Subtle drop shadow for depth and readability
 - Integration: Appears naturally part of the scene
+- Smart Redundancy: If logo/brand is already visible on image, avoid repeating brand name in this text overlay
 `;
   }
 

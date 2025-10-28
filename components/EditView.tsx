@@ -10,18 +10,18 @@ import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
 import AdjustmentPreview from './AdjustmentPreview';
-import InteractiveOverlayLayer from './InteractiveOverlayLayer';
-import OverlaysPanel from './OverlaysPanel';
+// Manual overlays and stickers removed per simplified workflow
 import AutoEnhancePanel from './AutoEnhancePanel';
 import FaceBeautyPanel from './FaceBeautyPanel';
 import BackgroundBlurPanel from './BackgroundBlurPanel';
 import ColorGradingPanel from './ColorGradingPanel';
-import StickerPanel from './StickerPanel';
 import AiModesPanel from './AiModesPanel';
 import PresetManagerPanel from './PresetManagerPanel';
 import { getFaceBeautyService, BeautySettings } from '../services/faceBeautyService';
 import { getBackgroundBlurService, BlurSettings } from '../services/backgroundBlurService';
 import { getColorGradingService, ColorGrade } from '../services/colorGradingService';
+import { generateCaptionFromImage } from '../services/geminiService';
+import { getSettingsService } from '../services/settingsService';
 
 interface EditViewProps {
   imageSrc: string;
@@ -74,7 +74,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [showBeautyPanel, setShowBeautyPanel] = useState(false);
   const [showBlurPanel, setShowBlurPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
-  const [showStickerPanel, setShowStickerPanel] = useState(false);
+  // Sticker panel removed
   const [showAiModesPanel, setShowAiModesPanel] = useState(false);
   const [showPresetManager, setShowPresetManager] = useState(false);
 
@@ -148,7 +148,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       enhancementLevel,
       adjustments: isAdjusted ? adjustments : undefined,
       compareMode: compareMode ? true : undefined,
-      overlays: overlays.length > 0 ? overlays : undefined,
+      // overlays removed; AI places caption directly on photo
     });
   }, [onEnhance, theme, primaryCaption, aspectRatio, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted, overlays]);
 
@@ -156,20 +156,12 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
     <div className="w-full h-full flex flex-col md:flex-row bg-black overflow-hidden">
       {/* LEFT SIDE: IMAGE PREVIEW */}
       <div className="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center bg-black p-4">
-        {isAdjusted || overlays.length > 0 ? (
+        {isAdjusted ? (
           <AdjustmentPreview
             originalImage={imageSrc}
             adjustments={adjustments}
             overlays={overlays}
             maxHeight="h-full"
-            overlayRenderer={({ imageRect, naturalSize }) => (
-              <InteractiveOverlayLayer
-                overlays={overlays}
-                onChange={setOverlays}
-                imageRect={imageRect}
-                naturalSize={naturalSize}
-              />
-            )}
           />
         ) : (
           <img src={imageSrc} alt="Captured selfie" className="max-w-full max-h-full object-contain rounded-lg" />
@@ -204,45 +196,37 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                   <Icon type="edit" className="w-4 h-4" />
                   Edit
                 </button>
-                <button
-                  onClick={() => {
-                    const id = `caption_${Date.now()}`;
-                    setOverlays(prev => [
-                      ...prev,
-                      {
-                        id,
-                        type: 'text',
-                        text: primaryCaption,
-                        color: '#ffffff',
-                        bgColor: 'rgba(0,0,0,0.35)',
-                        position: 'bottom',
-                        scale: 1.2,
-                        opacity: 1,
-                        fontSize: 28,
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        shadowBlur: 4,
-                        shadowOffsetX: 0,
-                        shadowOffsetY: 2,
-                        shadowColor: '#000000',
-                        offsetX: 0,
-                        offsetY: 0,
-                      },
-                    ]);
-                  }}
-                  className="flex-1 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2"
-                  title="Place caption on photo so you can move and resize it"
-                >
-                  <span>📍</span> Place On Photo
-                </button>
+                {/* Manual place-on-photo removed; AI will place caption automatically */}
                 <button
                   onClick={async () => {
                     try {
                       setIsGeneratingCaption(true);
-                      // Regenerate locally for speed (no network)
-                      const fresh = getQuickOverlayPhrase(theme);
-                      setPrimaryCaption(fresh);
-                      setCaptionEditValue(fresh);
+                      // Use AI to generate a smart caption from current photo
+                      const base64Match = imageSrc.match(/^data:([^;]+);base64,(.+)$/);
+                      if (base64Match) {
+                        const mimeType = base64Match[1];
+                        const base64Data = base64Match[2];
+                        // Thread dealership personalization + tone into short caption generation
+                        const settings = getSettingsService();
+                        const tone = settings.getCaptionTone();
+                        const dealershipName = settings.getDealershipName();
+                        const dealershipCity = settings.getDealershipCity();
+                        const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
+                          (tone as any) || 'friendly';
+                        const aiCaption = await generateCaptionFromImage(base64Data, mimeType, {
+                          tone: generatorTone,
+                          includeHashtags: false,
+                          maxWords: 8,
+                          dealershipName,
+                          dealershipCity,
+                        });
+                        setPrimaryCaption(aiCaption);
+                        setCaptionEditValue(aiCaption);
+                      } else {
+                        const fresh = getQuickOverlayPhrase(theme);
+                        setPrimaryCaption(fresh);
+                        setCaptionEditValue(fresh);
+                      }
                     } catch (error) {
                       console.error('Failed to generate caption:', error);
                     } finally {
@@ -327,13 +311,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </div>
         </div>
 
-        {/* ============================================ */}
-        {/* TEXT OVERLAYS & STICKERS */}
-        {/* ============================================ */}
-        <div className="glass rounded-xl p-4">
-          <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-3">✨ Text & Stickers</h3>
-          <OverlaysPanel overlays={overlays} onChange={setOverlays} imageSrc={imageSrc} />
-        </div>
+        {/* Manual Text & Stickers removed: AI places text directly on photo */}
 
         {/* ============================================ */}
         {/* LAYOUT OPTIONS */}
@@ -510,19 +488,8 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </button>
         </div>
 
-        {/* Additional Enhancements - Second Row */}
+        {/* Additional Enhancements - Second Row (stickers removed) */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <button
-            onClick={() => setShowStickerPanel(!showStickerPanel)}
-            className={`p-2 rounded-lg text-xs font-medium transition-all ${
-              showStickerPanel
-                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
-                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
-            }`}
-            title="Sticker Library"
-          >
-            🎨 Stickers
-          </button>
           <button
             onClick={() => setShowAiModesPanel(!showAiModesPanel)}
             className={`p-2 rounded-lg text-xs font-medium transition-all ${
@@ -568,15 +535,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </div>
         )}
 
-        {/* Sticker Panel */}
-        {showStickerPanel && (
-          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
-            <StickerPanel onSelectSticker={(sticker) => {
-              console.log('Sticker selected:', sticker);
-              // TODO: Add sticker to image overlay in future enhancement
-            }} onClose={() => setShowStickerPanel(false)} />
-          </div>
-        )}
+        {/* Sticker Panel removed */}
 
         {/* AI Modes Panel */}
         {showAiModesPanel && (
