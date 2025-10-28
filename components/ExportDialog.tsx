@@ -1,21 +1,14 @@
 /**
  * Export Dialog Component
- * Advanced export and sharing interface with multiple format and platform options
+ * Simplified one-button share with AI-generated caption
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Modal from './common/Modal';
 import Button from './common/Button';
 import Icon from './common/Icon';
-import {
-  ExportFormat,
-  EXPORT_FORMATS,
-  downloadImage,
-  copyImageToClipboard,
-  generateShareLink,
-  resizeForSocialPlatform,
-} from '../services/exportService';
-import { uploadImage, isUploadConfigured } from '../services/uploadService';
+import { downloadImage } from '../services/exportService';
+import { generateCaptionFromImage } from '../services/geminiService';
 import { useAnalytics } from '../services/analyticsService';
 
 export interface ExportDialogProps {
@@ -26,8 +19,6 @@ export interface ExportDialogProps {
   defaultCaption?: string;
 }
 
-type ExportTab = 'download' | 'share';
-
 export const ExportDialog: React.FC<ExportDialogProps> = ({
   isOpen,
   imageDataUrl,
@@ -36,450 +27,270 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   defaultCaption = '',
 }) => {
   const { trackFeature } = useAnalytics();
-  const [activeTab, setActiveTab] = useState<ExportTab>('download');
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('jpeg');
-  const [selectedPlatform, setSelectedPlatform] = useState<
-    'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'whatsapp'
-  >('instagram');
-  const [isExporting, setIsExporting] = useState(false);
-  const [message, setMessage] = useState('');
   const [caption, setCaption] = useState(defaultCaption);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [uploadAvailable] = useState<boolean>(() => isUploadConfigured());
-  const [copied, setCopied] = useState<string | null>(null);
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [message, setMessage] = useState('');
+  const [captionGenerated, setCaptionGenerated] = useState(false);
 
+  // Auto-generate AI caption when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      setCaption(defaultCaption);
+    if (isOpen && !captionGenerated) {
+      generateAICaption();
     }
-  }, [defaultCaption, isOpen]);
+  }, [isOpen]);
 
-  const handleDownload = useCallback(async () => {
+  const generateAICaption = useCallback(async () => {
     try {
-      setIsExporting(true);
-      await downloadImage(imageDataUrl, {
-        format: selectedFormat,
-        quality: selectedFormat === 'jpeg' ? 95 : undefined,
-      });
-      setMessage('Image downloaded successfully!');
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 1500);
-    } catch (error) {
-      setMessage(
-        `Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  }, [imageDataUrl, selectedFormat, onClose, onSuccess]);
-
-  const handleCopyToClipboard = useCallback(async () => {
-    try {
-      setIsExporting(true);
-      await copyImageToClipboard(imageDataUrl);
-      setMessage('Image copied to clipboard!');
-      setTimeout(() => {
-        setMessage('');
-      }, 2000);
-    } catch (error) {
-      setMessage(
-        `Copy failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  }, [imageDataUrl]);
-
-  const handleShare = useCallback(async () => {
-    try {
-      setIsExporting(true);
-      const targetImage = uploadedUrl || imageDataUrl;
-      const shareUrl = generateShareLink(selectedPlatform, targetImage, {
-        message: caption || `Check out this!`,
-      });
-
-      if (selectedPlatform === 'instagram') {
-        setMessage('Open Instagram app and post the image manually');
-      } else {
-        window.open(shareUrl, '_blank', 'width=600,height=400');
-        setMessage('Opening share dialog...');
+      setIsGeneratingCaption(true);
+      setMessage('AI is writing your caption...');
+      
+      // Extract base64 data from data URL
+      const base64Match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!base64Match) {
+        throw new Error('Invalid image data');
       }
-      trackFeature('open_share_link', { platform: selectedPlatform });
+      
+      const mimeType = base64Match[1];
+      const base64Data = base64Match[2];
+      
+      const aiCaption = await generateCaptionFromImage(base64Data, mimeType, {
+        tone: 'professional',
+        includeHashtags: true,
+        maxWords: 18,
+      });
+      
+      setCaption(aiCaption);
+      setCaptionGenerated(true);
+      setMessage('Caption ready! Edit if you like, then share.');
+      trackFeature('ai_caption_generated', { location: 'export_dialog' });
     } catch (error) {
-      setMessage(
-        `Share failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      console.error('Caption generation failed:', error);
+      setCaption(defaultCaption || 'Check out this amazing photo! 📸');
+      setMessage('Using default caption');
     } finally {
-      setIsExporting(false);
+      setIsGeneratingCaption(false);
     }
-  }, [selectedPlatform, imageDataUrl, caption, uploadedUrl, trackFeature]);
+  }, [imageDataUrl, defaultCaption, trackFeature]);
 
-  const handleWebShare = useCallback(async () => {
+  const handleSharePhoto = useCallback(async () => {
     try {
-      setIsExporting(true);
-      const { shareViaWebShare } = await import('../services/exportService');
-      // Prefer sharing the file itself via Web Share when possible.
-      // If an uploaded public URL exists, fall back to sharing the URL as text.
-      if (uploadedUrl) {
-        await navigator.share?.({
+      setIsSharing(true);
+      setMessage('Preparing to share...');
+
+      // Copy caption to clipboard first so user can paste it
+      try {
+        await navigator.clipboard.writeText(caption);
+        trackFeature('caption_copied_auto', { location: 'export_dialog' });
+      } catch (clipboardError) {
+        console.warn('Could not copy caption to clipboard:', clipboardError);
+      }
+
+      // Convert data URL to blob for Web Share API
+      const response = await fetch(imageDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      // Check if Web Share API is available
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
           title: 'AI Auto Selfie',
-          text: caption || undefined,
-          url: uploadedUrl,
-        } as any);
-      } else {
-        await shareViaWebShare(imageDataUrl, {
-          platform: selectedPlatform,
-          title: 'AI Auto Selfie',
-          message: caption || undefined,
+          text: caption,
+          files: [file],
         });
+        setMessage('Shared! Caption is in your clipboard - paste it in your post.');
+        trackFeature('web_share_success', { location: 'export_dialog' });
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 2000);
+      } else {
+        // Fallback: just download the image
+        setMessage('Share not supported. Downloading image instead. Caption is copied - paste it manually.');
+        await downloadImage(imageDataUrl, { format: 'jpeg', quality: 95 });
+        trackFeature('share_fallback_download', { location: 'export_dialog' });
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 2000);
       }
-      setMessage('Opening device share...');
-      trackFeature('device_web_share', { platform: selectedPlatform });
     } catch (error) {
-      setMessage(`Device share failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if ((error as Error).name === 'AbortError') {
+        // User cancelled share sheet
+        setMessage('Share cancelled');
+        setIsSharing(false);
+        return;
+      }
+      console.error('Share failed:', error);
+      setMessage(`Share failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsExporting(false);
+      setIsSharing(false);
     }
-  }, [imageDataUrl, caption, selectedPlatform, uploadedUrl, trackFeature]);
-
-  const handleUploadForShare = useCallback(async () => {
-    if (!uploadAvailable) {
-      setMessage('No upload provider configured.');
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      setMessage('Uploading image...');
-      const { url } = await uploadImage(imageDataUrl, { fileName: `ai-auto-selfie-${Date.now()}.jpg` });
-      setUploadedUrl(url);
-      setMessage('Image uploaded. Public link ready.');
-      trackFeature('upload_create_share_link', { provider: 'auto' });
-    } catch (err) {
-      setMessage(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsUploading(false);
-    }
-  }, [imageDataUrl, trackFeature, uploadAvailable]);
+  }, [imageDataUrl, caption, onClose, onSuccess, trackFeature]);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Export & Share"
+      title="Share Photo"
       size="md"
       showCloseButton={true}
     >
       <div className="space-y-6">
-        {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-neutral-800">
-          <button
-            onClick={() => setActiveTab('download')}
-            className={`px-4 py-2 font-semibold text-sm border-b-2 transition-colors ${
-              activeTab === 'download'
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Icon type="download" className="w-4 h-4 inline mr-2" />
-            Download
-          </button>
-          <button
-            onClick={() => setActiveTab('share')}
-            className={`px-4 py-2 font-semibold text-sm border-b-2 transition-colors ${
-              activeTab === 'share'
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Icon type="share" className="w-4 h-4 inline mr-2" />
-            Share
-          </button>
+        {/* AI-Generated Caption */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-semibold text-white">
+              AI-Generated Caption
+            </label>
+            <Button
+              onClick={generateAICaption}
+              variant="secondary"
+              size="sm"
+              disabled={isGeneratingCaption}
+              className="text-xs"
+            >
+              {isGeneratingCaption ? (
+                <>
+                  <Icon type="spinner" className="w-3 h-3 mr-1 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Icon type="refresh" className="w-3 h-3 mr-1" />
+                  Regenerate
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {isGeneratingCaption ? (
+            <div className="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+              <div className="flex items-center gap-3">
+                <Icon type="spinner" className="w-5 h-5 text-primary-400 animate-spin" />
+                <p className="text-sm text-neutral-300">AI is analyzing your photo and writing the perfect caption...</p>
+              </div>
+            </div>
+          ) : (
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={4}
+              placeholder="Your AI-generated caption will appear here..."
+              className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white focus:outline-none focus:border-primary-500 resize-none"
+            />
+          )}
+          
+          <div className="flex items-start gap-2 mt-2">
+            <Icon type="info" className="w-4 h-4 text-primary-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-neutral-400">
+              Caption will be copied to your clipboard. After sharing the photo, paste it into your social media post!
+            </p>
+          </div>
         </div>
 
-        {/* Download Tab */}
-        {activeTab === 'download' && (
-          <div className="space-y-4">
-            {/* Format Selection */}
-            <div>
-              <label className="block text-sm font-semibold text-white mb-3">
-                File Format
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {(Object.entries(EXPORT_FORMATS) as Array<
-                  [ExportFormat, typeof EXPORT_FORMATS['jpeg']]
-                >).map(([format, config]) => (
-                  <button
-                    key={format}
-                    onClick={() => setSelectedFormat(format)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      selectedFormat === format
-                        ? 'border-primary-500 bg-primary-500/10'
-                        : 'border-neutral-700 hover:border-neutral-600'
-                    }`}
-                  >
-                    <p className="font-semibold text-white uppercase text-sm">
-                      {config.extension}
-                    </p>
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {format === 'jpeg' && 'Best compatibility'}
-                      {format === 'png' && 'Lossless quality'}
-                      {format === 'webp' && 'Smallest size'}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* How it works */}
+        <div className="p-4 bg-gradient-to-r from-primary-500/10 to-pink-500/10 border border-primary-500/30 rounded-lg">
+          <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+            <Icon type="share" className="w-4 h-4" />
+            How This Works
+          </h3>
+          <ol className="text-xs text-neutral-300 space-y-1 list-decimal list-inside">
+            <li>Click "Share Photo" below</li>
+            <li>Choose where to share (Instagram, Messages, etc.)</li>
+            <li>Photo attaches automatically</li>
+            <li>Paste the caption from your clipboard</li>
+            <li>Post and engage! 🚀</li>
+          </ol>
+        </div>
 
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <Button
-                onClick={handleDownload}
-                variant="primary"
-                size="lg"
-                icon={<Icon type="download" />}
-                disabled={isExporting}
-                className="w-full"
-              >
-                {isExporting ? 'Exporting...' : 'Download Image'}
-              </Button>
-              <Button
-                onClick={handleCopyToClipboard}
-                variant="secondary"
-                size="lg"
-                icon={<Icon type="copy" />}
-                disabled={isExporting}
-                className="w-full"
-              >
-                {isExporting ? 'Copying...' : 'Copy to Clipboard'}
-              </Button>
-            </div>
-
-            {/* Format Info */}
-            <div className="p-3 bg-neutral-800/50 rounded-lg text-xs text-neutral-400">
-              <p className="font-semibold text-white mb-1">Format Recommendations:</p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>
-                  <strong>JPEG:</strong> Best for social media, universal compatibility
-                </li>
-                <li>
-                  <strong>PNG:</strong> For transparency, professional printing
-                </li>
-                <li>
-                  <strong>WebP:</strong> Modern format, better compression
-                </li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Share Tab */}
-        {activeTab === 'share' && (
-          <div className="space-y-4">
-            {/* Caption Composer */}
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">Caption</label>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={3}
-                placeholder="Say something about this photo..."
-                className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded text-sm text-white focus:outline-none focus:border-primary-500"
-              />
-              <div className="text-[11px] text-neutral-400 mt-1">Tip: Add hashtags like #car #delivery</div>
-            </div>
-            {/* Platform Selection */}
-            <div>
-              <label className="block text-sm font-semibold text-white mb-3">
-                Share to Platform
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    { id: 'instagram', name: 'Instagram', icon: '📷' },
-                    { id: 'facebook', name: 'Facebook', icon: '👥' },
-                    { id: 'twitter', name: 'Twitter', icon: '𝕏' },
-                    { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
-                    { id: 'whatsapp', name: 'WhatsApp', icon: '🟢' },
-                  ] as const
-                ).map(({ id, name, icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedPlatform(id)}
-                    className={`p-3 rounded-lg border-2 transition-all text-center ${
-                      selectedPlatform === id
-                        ? 'border-primary-500 bg-primary-500/10'
-                        : 'border-neutral-700 hover:border-neutral-600'
-                    }`}
-                  >
-                    <p className="text-xl mb-1">{icon}</p>
-                    <p className="font-semibold text-white text-sm">{name}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Copy helpers */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(caption || '');
-                    trackFeature('copy_caption', { location: 'export_dialog' });
-                    setCopied('caption');
-                    setTimeout(() => setCopied(null), 1500);
-                  } catch (e) {
-                    setMessage('Failed to copy caption');
-                  }
-                }}
-                variant="secondary"
-                size="sm"
-                className="w-full"
-              >
-                {copied === 'caption' ? 'Copied Caption ✓' : 'Copy Caption'}
-              </Button>
-
-              <Button
-                onClick={async () => {
-                  const tags = (caption || '')
-                    .split(/\s+/)
-                    .filter((w) => w.startsWith('#'))
-                    .join(' ');
-                  if (!tags) {
-                    setMessage('No hashtags detected in caption');
-                    return;
-                  }
-                  try {
-                    await navigator.clipboard.writeText(tags);
-                    trackFeature('copy_hashtags', { location: 'export_dialog' });
-                    setCopied('hashtags');
-                    setTimeout(() => setCopied(null), 1500);
-                  } catch (e) {
-                    setMessage('Failed to copy hashtags');
-                  }
-                }}
-                variant="secondary"
-                size="sm"
-                className="w-full"
-              >
-                {copied === 'hashtags' ? 'Copied Hashtags ✓' : 'Copy Hashtags'}
-              </Button>
-            </div>
-
-            {/* Upload / Create public share link (optional) */}
-            {uploadAvailable && (
-              <div className="space-y-2">
-                <Button
-                  onClick={handleUploadForShare}
-                  variant="secondary"
-                  size="lg"
-                  disabled={isUploading || isExporting}
-                  className="w-full"
-                >
-                  {isUploading ? 'Uploading...' : uploadedUrl ? 'Re-upload / Refresh Link' : 'Create Share Link (Upload)'}
-                </Button>
-
-                {uploadedUrl && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      aria-label="Uploaded share link"
-                      title="Uploaded share link"
-                      value={uploadedUrl}
-                      className="flex-1 p-2 bg-neutral-900 rounded text-xs text-white"
-                    />
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(uploadedUrl);
-                          setMessage('Uploaded link copied!');
-                          trackFeature('copy_uploaded_link', { location: 'export_dialog' });
-                        } catch (e) {
-                          setMessage('Failed to copy link');
-                        }
-                      }}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Copy
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Share Actions */}
-            <Button
-              onClick={handleShare}
-              variant="primary"
-              size="lg"
-              icon={<span className="text-lg">↗</span>}
-              disabled={isExporting}
-              className="w-full"
-            >
-              {isExporting ? 'Opening...' : 'Open Share Dialog'}
-            </Button>
-
-            <Button
-              onClick={handleWebShare}
-              variant="secondary"
-              size="lg"
-              icon={<span className="text-lg">📲</span>}
-              disabled={isExporting}
-              className="w-full"
-            >
-              Share via Device (Web Share)
-            </Button>
-
-            {/* Alternative Share Methods */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-neutral-400">More Options:</p>
-              <Button
-                onClick={() => {
-                  // Copy share link (prefer uploaded public URL)
-                  const link = uploadedUrl || window.location.href;
-                  navigator.clipboard.writeText(link);
-                  setMessage('Share link copied!');
-                }}
-                variant="secondary"
-                size="sm"
-                icon={<span className="text-sm">🔗</span>}
-                className="w-full"
-              >
-                Copy Share Link
-              </Button>
-            </div>
-
-            {/* Platform Info */}
-            <div className="p-3 bg-neutral-800/50 rounded-lg text-xs text-neutral-400">
-              <p className="font-semibold text-white mb-1">Platform Tips:</p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>Instagram: Best for 1:1 aspect ratio posts</li>
-                <li>Facebook: Supports 1.91:1 landscape format</li>
-                <li>Twitter: Optimized for 2:1 widescreen</li>
-                <li>LinkedIn: Professional network, great for B2B</li>
-              </ul>
-            </div>
-          </div>
-        )}
+        {/* Main Share Button */}
+        <Button
+          onClick={handleSharePhoto}
+          variant="primary"
+          size="lg"
+          icon={<Icon type="share" />}
+          disabled={isSharing || isGeneratingCaption}
+          className="w-full text-lg py-4"
+        >
+          {isSharing ? (
+            <>
+              <Icon type="spinner" className="w-5 h-5 mr-2 animate-spin" />
+              Opening Share Sheet...
+            </>
+          ) : (
+            'Share Photo'
+          )}
+        </Button>
 
         {/* Status Message */}
         {message && (
-          <div className="p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg">
-            <p className="text-sm text-primary-300 font-medium">{message}</p>
+          <div className={`p-3 rounded-lg border ${
+            message.includes('failed') || message.includes('error')
+              ? 'bg-red-500/10 border-red-500/30'
+              : 'bg-primary-500/10 border-primary-500/30'
+          }`}>
+            <p className={`text-sm font-medium ${
+              message.includes('failed') || message.includes('error')
+                ? 'text-red-300'
+                : 'text-primary-300'
+            }`}>
+              {message}
+            </p>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4 border-t border-neutral-800">
+        {/* Quick Actions */}
+        <div className="pt-4 border-t border-neutral-800 space-y-2">
+          <p className="text-xs font-semibold text-neutral-400 mb-2">Quick Actions:</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(caption);
+                  setMessage('Caption copied! ✓');
+                  trackFeature('copy_caption_manual', { location: 'export_dialog' });
+                  setTimeout(() => setMessage(''), 2000);
+                } catch (e) {
+                  setMessage('Failed to copy caption');
+                }
+              }}
+              variant="secondary"
+              size="sm"
+              className="w-full"
+            >
+              <Icon type="copy" className="w-4 h-4 mr-2" />
+              Copy Caption
+            </Button>
+            
+            <Button
+              onClick={async () => {
+                try {
+                  await downloadImage(imageDataUrl, { format: 'jpeg', quality: 95 });
+                  setMessage('Photo saved to camera roll!');
+                  trackFeature('download_from_share_dialog', { location: 'export_dialog' });
+                  setTimeout(() => setMessage(''), 2000);
+                } catch (e) {
+                  setMessage('Download failed');
+                }
+              }}
+              variant="secondary"
+              size="sm"
+              className="w-full"
+            >
+              <Icon type="download" className="w-4 h-4 mr-2" />
+              Save Photo
+            </Button>
+          </div>
+        </div>
+
+        {/* Close Button */}
+        <div className="pt-4 border-t border-neutral-800">
           <Button
             onClick={onClose}
             variant="secondary"
             size="sm"
-            className="flex-1"
+            className="w-full"
           >
             Close
           </Button>

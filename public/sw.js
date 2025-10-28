@@ -72,37 +72,58 @@ self.addEventListener('fetch', (event) => {
   if (
     event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/)
   ) {
+    // If this is the Vercel analytics script, prefer network (and swallow errors)
+    if (event.request.url.includes('/_vercel/insights/')) {
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          // If analytics isn't available (401/404), return a harmless empty response
+          return new Response('', { status: 204, statusText: 'No Content' });
+        })
+      );
+      return;
+    }
+
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
           return cachedResponse;
         }
 
-        return fetch(event.request).then((response) => {
-          // Don't cache if not a success response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        return fetch(event.request)
+          .then((response) => {
+            // Don't cache if not a success response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            const responseClone = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+
             return response;
-          }
-
-          const responseClone = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(event.request, responseClone);
+          })
+          .catch(() => {
+            // On network error, try to return something from cache or a minimal fallback
+            return caches.match(event.request).then((fallback) => fallback || new Response('', { status: 504, statusText: 'Gateway Timeout' }));
           });
-
-          return response;
-        });
       })
     );
     return;
   }
 
-  // Network-only for API calls and Supabase
+  // Network-only for API calls and Supabase (wrap with catch so SW doesn't throw)
   if (
     event.request.url.includes('/api/') ||
     event.request.url.includes('supabase.co') ||
     event.request.url.includes('googleapis.com')
   ) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // If API network fails, try to return cached response (if any) or a 502 response
+        return caches.match(event.request).then((cached) => cached || new Response('Network error', { status: 502 }));
+      })
+    );
     return;
   }
 
@@ -117,7 +138,8 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        // On network failure, try cache first; if not present, return a minimal fallback
+        return caches.match(event.request).then((cached) => cached || new Response('', { status: 504, statusText: 'Gateway Timeout' }));
       })
   );
 });
