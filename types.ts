@@ -176,6 +176,7 @@ export interface PerformanceMetrics {
 
 // Overlays
 export type OverlayPosition =
+  | 'auto'
   | 'top-left'
   | 'top'
   | 'top-right'

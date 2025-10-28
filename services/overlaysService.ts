@@ -9,6 +9,29 @@ export interface ComposeOptions {
   background?: string; // optional background fill before drawing
 }
 
+/** Light utils */
+function parseColorToRGB(color?: string): { r: number; g: number; b: number } {
+  if (!color) return { r: 255, g: 255, b: 255 };
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (!ctx) return { r: 255, g: 255, b: 255 };
+  ctx.fillStyle = color;
+  // This forces the browser to resolve the color string
+  const computed = ctx.fillStyle as string;
+  // Handle rgb(a) or hex
+  if (computed.startsWith('#')) {
+    const hex = computed.slice(1);
+    const bigint = parseInt(hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex, 16);
+    return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+  }
+  const m = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (m) return { r: parseInt(m[1], 10), g: parseInt(m[2], 10), b: parseInt(m[3], 10) };
+  return { r: 255, g: 255, b: 255 };
+}
+
+function luminance(r: number, g: number, b: number) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
 /** Map position keyword to pixel coordinates */
 function resolvePosition(
   position: TextOverlay['position'],
@@ -19,6 +42,7 @@ function resolvePosition(
   padding: number = 24
 ): { x: number; y: number } {
   const positions: Record<NonNullable<TextOverlay['position']>, { x: number; y: number }> = {
+    'auto': { x: (canvasWidth - boxWidth) / 2, y: (canvasHeight - boxHeight) / 2 },
     'top-left': { x: padding, y: padding },
     top: { x: (canvasWidth - boxWidth) / 2, y: padding },
     'top-right': { x: canvasWidth - boxWidth - padding, y: padding },
@@ -30,6 +54,111 @@ function resolvePosition(
     'bottom-right': { x: canvasWidth - boxWidth - padding, y: canvasHeight - boxHeight - padding },
   };
   return positions[position] || positions.center;
+}
+
+function findBestAutoPosition(
+  baseCtx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  textWidth: number,
+  textHeight: number,
+  textColor?: string
+) {
+  // Downscale current canvas (with base image drawn) for fast analysis
+  const SAMPLE_MAX = 160;
+  const scale = Math.min(SAMPLE_MAX / canvasWidth, SAMPLE_MAX / canvasHeight, 1);
+  const sw = Math.max(1, Math.round(canvasWidth * scale));
+  const sh = Math.max(1, Math.round(canvasHeight * scale));
+  const off = document.createElement('canvas');
+  off.width = sw; off.height = sh;
+  const octx = off.getContext('2d')!;
+  octx.drawImage(baseCtx.canvas, 0, 0, sw, sh);
+  const img = octx.getImageData(0, 0, sw, sh);
+
+  // Build luminance and simple edge map (Sobel)
+  const lum = new Float32Array(sw * sh);
+  for (let i = 0; i < sw * sh; i++) {
+    const r = img.data[i * 4 + 0];
+    const g = img.data[i * 4 + 1];
+    const b = img.data[i * 4 + 2];
+    lum[i] = luminance(r, g, b);
+  }
+  const edge = new Float32Array(sw * sh);
+  const kx = [ -1, 0, 1, -2, 0, 2, -1, 0, 1 ];
+  const ky = [ -1, -2, -1, 0, 0, 0, 1, 2, 1 ];
+  for (let y = 1; y < sh - 1; y++) {
+    for (let x = 1; x < sw - 1; x++) {
+      let gx = 0, gy = 0;
+      let idx = 0;
+      for (let j = -1; j <= 1; j++) {
+        for (let i2 = -1; i2 <= 1; i2++) {
+          const px = x + i2;
+          const py = y + j;
+          const p = py * sw + px;
+          gx += lum[p] * kx[idx];
+          gy += lum[p] * ky[idx];
+          idx++;
+        }
+      }
+      const g = Math.sqrt(gx * gx + gy * gy);
+      edge[y * sw + x] = g;
+    }
+  }
+
+  const textBrightness = (() => {
+    const { r, g, b } = parseColorToRGB(textColor);
+    return luminance(r, g, b); // 0..255
+  })();
+
+  const pad = Math.round(24 * scale);
+  const tw = Math.max(1, Math.round(textWidth * scale));
+  const th = Math.max(1, Math.round(textHeight * scale));
+
+  const candidates: Array<{ key: string; x: number; y: number }> = [
+    { key: 'top-left', x: pad, y: pad },
+    { key: 'top', x: Math.max(pad, Math.round((sw - tw) / 2)), y: pad },
+    { key: 'top-right', x: Math.max(pad, sw - tw - pad), y: pad },
+    { key: 'left', x: pad, y: Math.max(pad, Math.round((sh - th) / 2)) },
+    { key: 'center', x: Math.max(pad, Math.round((sw - tw) / 2)), y: Math.max(pad, Math.round((sh - th) / 2)) },
+    { key: 'right', x: Math.max(pad, sw - tw - pad), y: Math.max(pad, Math.round((sh - th) / 2)) },
+    { key: 'bottom-left', x: pad, y: Math.max(pad, sh - th - pad) },
+    { key: 'bottom', x: Math.max(pad, Math.round((sw - tw) / 2)), y: Math.max(pad, sh - th - pad) },
+    { key: 'bottom-right', x: Math.max(pad, sw - tw - pad), y: Math.max(pad, sh - th - pad) },
+  ];
+
+  const scoreRect = (sx: number, sy: number, w: number, h: number) => {
+    let sumEdge = 0;
+    let sumLum = 0;
+    let count = 0;
+    for (let yy = sy; yy < Math.min(sy + h, sh); yy++) {
+      for (let xx = sx; xx < Math.min(sx + w, sw); xx++) {
+        const p = yy * sw + xx;
+        sumEdge += edge[p];
+        sumLum += lum[p];
+        count++;
+      }
+    }
+    const meanEdge = count ? sumEdge / count : 0;
+    const meanLum = count ? sumLum / count : 127;
+    const edgeScore = 1 - Math.min(1, meanEdge / 128); // favor low-detail regions
+    const contrastScore = Math.min(1, Math.abs(meanLum - textBrightness) / 180); // favor contrast from text brightness
+    return 0.6 * edgeScore + 0.4 * contrastScore;
+  };
+
+  let best = candidates[0];
+  let bestScore = -Infinity;
+  for (const c of candidates) {
+    const sc = scoreRect(c.x, c.y, tw, th);
+    if (sc > bestScore) {
+      best = c; bestScore = sc;
+    }
+  }
+
+  // Map back to full-res coordinates
+  const fx = Math.round(best.x / scale);
+  const fy = Math.round(best.y / scale);
+  const chosen: TextOverlay['position'] = (best.key as any);
+  return { position: chosen, x: fx, y: fy, score: bestScore };
 }
 
 function drawText(ctx: CanvasRenderingContext2D, overlay: TextOverlay, canvasWidth: number, canvasHeight: number) {
@@ -48,9 +177,33 @@ function drawText(ctx: CanvasRenderingContext2D, overlay: TextOverlay, canvasWid
   const textWidth = metrics.width;
   const textHeight = fontSize * 1.2;
 
-  let { x, y } = resolvePosition(overlay.position, canvasWidth, canvasHeight, textWidth, textHeight);
-  x += overlay.offsetX ?? 0;
-  y += overlay.offsetY ?? 0;
+  let x: number; let y: number;
+  if (overlay.position === 'auto') {
+    // Analyze current canvas (with base image) to pick the best placement
+    const auto = findBestAutoPosition(ctx, canvasWidth, canvasHeight, textWidth, textHeight, overlay.color);
+    const resolved = resolvePosition(auto.position, canvasWidth, canvasHeight, textWidth, textHeight);
+    // Use resolved x/y for anchor, then overwrite with computed offsets
+    x = auto.x; y = auto.y;
+    // If contrast is weak, enable a subtle pill background automatically
+    // Heuristic: recompute contrast at chosen rect
+    // Downscale logic already computed; simpler: use chosen background average via small sample
+    const sample = ctx.getImageData(Math.max(0, x), Math.max(0, y), Math.min(canvasWidth - x, Math.round(textWidth)), Math.min(canvasHeight - y, Math.round(textHeight)));
+    let sum = 0; for (let i = 0; i < sample.data.length; i += 4) { sum += luminance(sample.data[i], sample.data[i+1], sample.data[i+2]); }
+    const avgLum = sample.data.length ? sum / (sample.data.length / 4) : 127;
+    const { r, g, b } = parseColorToRGB(overlay.color || '#ffffff');
+    const textLum = luminance(r, g, b);
+    const contrast = Math.abs(avgLum - textLum);
+    const needsPill = contrast < 90; // threshold tuned empirically
+    if (needsPill && !overlay.bgColor) {
+      // Draw a local pill with adaptive color
+      const darkText = textLum < 128;
+      (overlay as any).__autoBg = darkText ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.45)';
+    }
+  } else {
+    const pos = resolvePosition(overlay.position, canvasWidth, canvasHeight, textWidth, textHeight);
+    x = pos.x + (overlay.offsetX ?? 0);
+    y = pos.y + (overlay.offsetY ?? 0);
+  }
 
   if (overlay.rotation) {
     ctx.translate(x + textWidth / 2, y + textHeight / 2);
@@ -60,12 +213,13 @@ function drawText(ctx: CanvasRenderingContext2D, overlay: TextOverlay, canvasWid
   }
 
   // Background pill (optional)
-  if (overlay.bgColor) {
+  const bgColor = (overlay as any).__autoBg || overlay.bgColor;
+  if (bgColor) {
     const paddingX = Math.max(12, fontSize * 0.3);
     const paddingY = Math.max(6, fontSize * 0.2);
     const w = textWidth + paddingX * 2;
     const h = textHeight + paddingY * 2;
-    ctx.fillStyle = overlay.bgColor;
+    ctx.fillStyle = bgColor;
     const radius = Math.min(16, h / 2);
     // rounded rect
     ctx.beginPath();

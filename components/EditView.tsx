@@ -189,7 +189,8 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const handleEnhanceClick = useCallback(() => {
     onEnhance({
       theme,
-      message: primaryCaption,
+      // Let us place the caption deterministically with content-aware placement post-AI
+      message: '',
       ctaText: '',
       logoBase64: null,
       logoMimeType: null,
@@ -199,9 +200,19 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       enhancementLevel,
       adjustments: isAdjusted ? adjustments : undefined,
       compareMode: compareMode ? true : undefined,
-      // overlays removed; AI places caption directly on photo
+      overlays: [
+        {
+          id: `auto_caption_${Date.now()}`,
+          type: 'text',
+          text: primaryCaption,
+          color: '#ffffff',
+          position: 'auto',
+          scale: 1,
+          fontWeight: 'bold',
+        },
+      ],
     });
-  }, [onEnhance, theme, primaryCaption, aspectRatio, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted, overlays]);
+  }, [onEnhance, theme, primaryCaption, aspectRatio, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted]);
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row bg-black overflow-hidden">

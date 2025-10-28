@@ -38,7 +38,53 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [image]);
+    showToast('Photo saved!', 'success');
+    trackFeature('history_download', { location: 'history_detail' });
+  }, [image, showToast, trackFeature]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      // Step 1: Copy caption to clipboard
+      if (currentCaption) {
+        try {
+          await navigator.clipboard.writeText(currentCaption);
+          showToast('Caption copied to clipboard ✓', 'success');
+          trackFeature('caption_copied_from_history', { location: 'history_detail' });
+        } catch (clipboardError) {
+          console.warn('Could not copy caption:', clipboardError);
+        }
+      }
+
+      // Step 2: Convert data URL to blob for sharing
+      const response = await fetch(image.imageDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      // Step 3: Try Web Share API with image
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: 'AI Auto Selfie',
+          text: currentCaption || 'Check out this photo!',
+          files: [file],
+        });
+        showToast('Shared! Caption is in your clipboard.', 'success');
+        trackFeature('history_web_share_success', { location: 'history_detail' });
+      } else {
+        // Fallback: download the image
+        showToast('Downloading... Caption is copied - paste it when sharing!', 'info');
+        handleSave();
+        trackFeature('history_share_fallback_download', { location: 'history_detail' });
+      }
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        // User cancelled share sheet
+        showToast('Share cancelled. Caption is still copied.', 'info');
+        return;
+      }
+      console.error('Share failed:', error);
+      showToast('Share failed. Try downloading instead.', 'error');
+    }
+  }, [image.imageDataUrl, currentCaption, handleSave, showToast, trackFeature]);
 
   const handleDelete = () => {
     if (window.confirm("Are you sure you want to delete this image from your gallery?")) {
@@ -273,20 +319,20 @@ const GalleryDetailView: React.FC<GalleryDetailViewProps> = ({ image, onDelete }
           {isFavorited ? 'Favorited' : 'Favorite'}
         </Button>
         <Button
+          onClick={handleShare}
+          variant="primary"
+          icon={<Icon type="share" />}
+          className="flex-1 min-w-[120px]"
+        >
+          Save/Share
+        </Button>
+        <Button
           onClick={handleDelete}
           variant="danger"
           icon={<Icon type="trash" />}
           className="flex-1 min-w-[120px]"
         >
           Delete
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="primary"
-          icon={<Icon type="download" />}
-          className="flex-1 min-w-[120px]"
-        >
-          Download
         </Button>
       </div>
     </div>
