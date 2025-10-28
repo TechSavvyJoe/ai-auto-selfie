@@ -7,11 +7,15 @@ import Header from './components/common/Header';
 import Button from './components/common/Button';
 import Icon from './components/common/Icon';
 import ErrorBoundary from './components/ErrorBoundary';
+import AuthModal from './components/AuthModal';
+import AdminDashboard from './components/AdminDashboard';
 import { getShortcutsService } from './services/shortcutsService';
 import { getAnalyticsService } from './services/analyticsService';
 import { getTutorialService } from './services/tutorialService';
 import { theme } from './design/theme';
 import { useDesktopDetection } from './hooks/useDesktopDetection';
+import { useAuth } from './hooks/useAuth';
+import { isSupabaseConfigured } from './services/supabaseService';
 
 // Lazy-load heavy components for code-splitting
 const CameraView = lazy(() => import('./components/CameraView'));
@@ -138,9 +142,14 @@ const AppContent: React.FC = () => {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [showBatchEnhancePanel, setShowBatchEnhancePanel] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
 
   // Detect if user is on desktop browser
   const isDesktop = useDesktopDetection();
+
+  // Get auth state
+  const { user, userProfile, isAuthenticated, isAdmin, loading: authLoading, signOut } = useAuth();
 
   const {
     appState,
@@ -179,6 +188,8 @@ const AppContent: React.FC = () => {
           setShowSettingsPanel(false);
           setShowAnalyticsDashboard(false);
           setShowBatchEnhancePanel(false);
+          setShowAuthModal(false);
+          setShowAdminDashboard(false);
           if (appState !== AppState.GALLERY && appState !== AppState.START) {
             goHome();
           }
@@ -203,6 +214,13 @@ const AppContent: React.FC = () => {
       // Note: Keep the key listener attached for the entire app lifecycle
     };
   }, [appState, goHome, viewGallery, startNewPost]);
+
+  // Show auth modal if Supabase is configured but user is not logged in
+  useEffect(() => {
+    if (isSupabaseConfigured() && !authLoading && !isAuthenticated) {
+      setShowAuthModal(true);
+    }
+  }, [authLoading, isAuthenticated]);
 
   // Calculate gallery stats for desktop view
   const galleryStats = useMemo(() => {
@@ -306,7 +324,17 @@ const AppContent: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-950 text-white">
-        <Header appState={appState} onHome={goHome} onBack={goBack} onGallery={viewGallery} />
+        <Header 
+          appState={appState} 
+          onHome={goHome} 
+          onBack={goBack} 
+          onGallery={viewGallery}
+          user={user}
+          userProfile={userProfile}
+          isAdmin={isAdmin}
+          onSignOut={signOut}
+          onOpenAdmin={() => setShowAdminDashboard(true)}
+        />
 
         {error && (
           <div className="absolute left-1/2 top-24 z-30 w-11/12 max-w-xl -translate-x-1/2 rounded-2xl border border-red-400/40 bg-red-500/20 px-6 py-4 text-center shadow-xl backdrop-blur-md animate-in slide-in-from-top duration-300">
@@ -359,6 +387,17 @@ const AppContent: React.FC = () => {
       <Suspense fallback={null}>
         <TutorialOverlay enabled={getTutorialService().shouldShowIntroduction()} />
       </Suspense>
+
+        {showAuthModal && (
+          <AuthModal 
+            onClose={() => setShowAuthModal(false)} 
+            onAuthSuccess={() => setShowAuthModal(false)} 
+          />
+        )}
+
+        {showAdminDashboard && (
+          <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
+        )}
 
         <Analytics />
       </div>

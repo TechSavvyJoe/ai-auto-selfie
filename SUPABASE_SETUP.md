@@ -43,14 +43,42 @@ VITE_GEMINI_API_KEY=your-existing-gemini-key
 3. Copy and paste this SQL:
 
 ```sql
+-- Create dealerships table
+CREATE TABLE dealerships (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  logo_url TEXT,
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user_profiles table (extends auth.users with role and dealership)
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  dealership_id UUID REFERENCES dealerships(id) ON DELETE SET NULL,
+  role TEXT NOT NULL DEFAULT 'salesperson' CHECK (role IN ('admin', 'manager', 'salesperson')),
+  full_name TEXT,
+  phone TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create photos table
 CREATE TABLE photos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  dealership_id UUID REFERENCES dealerships(id) ON DELETE SET NULL,
   original_url TEXT NOT NULL,
   edited_url TEXT,
   caption TEXT,
   filters JSONB DEFAULT '{}',
+  customer_name TEXT,
+  customer_email TEXT,
+  car_info JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -59,8 +87,10 @@ CREATE TABLE photos (
 CREATE TABLE presets (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  dealership_id UUID REFERENCES dealerships(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   settings JSONB NOT NULL,
+  is_shared BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -74,18 +104,65 @@ CREATE TABLE user_settings (
 );
 
 -- Add indexes for performance
+CREATE INDEX dealerships_name_idx ON dealerships(name);
+CREATE INDEX user_profiles_dealership_id_idx ON user_profiles(dealership_id);
+CREATE INDEX user_profiles_role_idx ON user_profiles(role);
 CREATE INDEX photos_user_id_idx ON photos(user_id);
+CREATE INDEX photos_dealership_id_idx ON photos(dealership_id);
 CREATE INDEX photos_created_at_idx ON photos(created_at DESC);
 CREATE INDEX presets_user_id_idx ON presets(user_id);
+CREATE INDEX presets_dealership_id_idx ON presets(dealership_id);
 
 -- Enable Row Level Security (RLS)
+ALTER TABLE dealerships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
--- Create policies so users can only access their own data
+-- Dealership policies
+CREATE POLICY "Users can view their own dealership" ON dealerships
+  FOR SELECT USING (
+    id IN (SELECT dealership_id FROM user_profiles WHERE id = auth.uid())
+  );
+
+CREATE POLICY "Admins can manage all dealerships" ON dealerships
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- User profiles policies
+CREATE POLICY "Users can view their own profile" ON user_profiles
+  FOR SELECT USING (id = auth.uid());
+
+CREATE POLICY "Users can view profiles in their dealership" ON user_profiles
+  FOR SELECT USING (
+    dealership_id IN (SELECT dealership_id FROM user_profiles WHERE id = auth.uid())
+  );
+
+CREATE POLICY "Admins can manage all profiles" ON user_profiles
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "Managers can manage profiles in their dealership" ON user_profiles
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.id = auth.uid() 
+      AND up.role IN ('admin', 'manager')
+      AND up.dealership_id = user_profiles.dealership_id
+    )
+  );
+
+-- Photos policies
 CREATE POLICY "Users can view their own photos" ON photos
   FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view photos in their dealership" ON photos
+  FOR SELECT USING (
+    dealership_id IN (SELECT dealership_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "Users can insert their own photos" ON photos
   FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -96,20 +173,56 @@ CREATE POLICY "Users can update their own photos" ON photos
 CREATE POLICY "Users can delete their own photos" ON photos
   FOR DELETE USING (auth.uid() = user_id);
 
+CREATE POLICY "Managers can manage dealership photos" ON photos
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.id = auth.uid() 
+      AND up.role IN ('admin', 'manager')
+      AND up.dealership_id = photos.dealership_id
+    )
+  );
+
+-- Presets policies
 CREATE POLICY "Users can view their own presets" ON presets
   FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view shared presets in their dealership" ON presets
+  FOR SELECT USING (
+    is_shared = true 
+    AND dealership_id IN (SELECT dealership_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "Users can insert their own presets" ON presets
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can update their own presets" ON presets
+  FOR UPDATE USING (auth.uid() = user_id);
+
 CREATE POLICY "Users can delete their own presets" ON presets
   FOR DELETE USING (auth.uid() = user_id);
 
+-- User settings policies
 CREATE POLICY "Users can view their own settings" ON user_settings
   FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own settings" ON user_settings
   FOR ALL USING (auth.uid() = user_id);
+
+-- Function to create user profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, full_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to automatically create profile
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
 4. Click **Run** (or press Cmd+Enter)

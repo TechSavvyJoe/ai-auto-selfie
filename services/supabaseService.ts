@@ -20,13 +20,39 @@ export const isSupabaseConfigured = () => {
 };
 
 // Database types
+export interface Dealership {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  settings: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  dealership_id?: string;
+  role: 'admin' | 'manager' | 'salesperson';
+  full_name?: string;
+  phone?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Photo {
   id: string;
   user_id: string;
+  dealership_id?: string;
   original_url: string;
   edited_url?: string;
   caption?: string;
   filters: any;
+  customer_name?: string;
+  customer_email?: string;
+  car_info?: any;
   created_at: string;
   updated_at: string;
 }
@@ -34,8 +60,10 @@ export interface Photo {
 export interface Preset {
   id: string;
   user_id: string;
+  dealership_id?: string;
   name: string;
   settings: any;
+  is_shared: boolean;
   created_at: string;
 }
 
@@ -48,7 +76,7 @@ export interface UserSettings {
 }
 
 class SupabaseService {
-  private client: SupabaseClient | null = null;
+  public client: SupabaseClient | null = null;
 
   constructor() {
     this.client = getSupabaseClient();
@@ -79,6 +107,127 @@ class SupabaseService {
     if (!this.client) return null;
     const { data: { user } } = await this.client.auth.getUser();
     return user;
+  }
+
+  async getUserProfile(userId?: string) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const uid = userId || (await this.getCurrentUser())?.id;
+    if (!uid) return null;
+    
+    const { data, error } = await this.client
+      .from('user_profiles')
+      .select('*, dealerships(*)')
+      .eq('id', uid)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  // Dealership methods
+  async createDealership(dealership: Omit<Dealership, 'id' | 'created_at' | 'updated_at'>) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { data, error } = await this.client
+      .from('dealerships')
+      .insert(dealership)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateDealership(id: string, updates: Partial<Dealership>) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { data, error } = await this.client
+      .from('dealerships')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async getDealerships() {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { data, error } = await this.client
+      .from('dealerships')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteDealership(id: string) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { error } = await this.client
+      .from('dealerships')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  // User management methods
+  async createUser(email: string, password: string, profile: Partial<UserProfile>) {
+    if (!this.client) throw new Error('Supabase not configured');
+    
+    // Create auth user
+    const { data: authData, error: authError } = await this.client.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: profile.full_name }
+    });
+    
+    if (authError) throw authError;
+    
+    // Update profile with additional info
+    if (authData.user) {
+      const { error: profileError } = await this.client
+        .from('user_profiles')
+        .update({
+          dealership_id: profile.dealership_id,
+          role: profile.role || 'salesperson',
+          phone: profile.phone
+        })
+        .eq('id', authData.user.id);
+      
+      if (profileError) throw profileError;
+    }
+    
+    return authData.user;
+  }
+
+  async updateUserProfile(userId: string, updates: Partial<UserProfile>) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { data, error } = await this.client
+      .from('user_profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async getUserProfiles(dealershipId?: string) {
+    if (!this.client) throw new Error('Supabase not configured');
+    let query = this.client
+      .from('user_profiles')
+      .select('*, dealerships(name)');
+    
+    if (dealershipId) {
+      query = query.eq('dealership_id', dealershipId);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteUser(userId: string) {
+    if (!this.client) throw new Error('Supabase not configured');
+    const { error } = await this.client.auth.admin.deleteUser(userId);
+    if (error) throw error;
   }
 
   // Photo methods
