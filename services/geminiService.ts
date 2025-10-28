@@ -22,6 +22,7 @@ export interface EnhancedAIOptions extends EditOptions {
 
 /**
  * Premium theme prompts for professional-grade results
+ * AUTO MODE: Automatically applies best visual enhancements for dealership photos
  */
 const getAdvancedThemePrompt = (theme: Theme, mode: AIMode = 'professional'): string => {
   const basePrompts = {
@@ -30,24 +31,28 @@ const getAdvancedThemePrompt = (theme: Theme, mode: AIMode = 'professional'): st
       colorGrade: 'Deep, rich tones with enhanced shadows. Metallic highlights with subtle warmth. Think Vogue or high-end automotive advertising',
       lighting: 'Dramatic three-point lighting with soft key light, subtle fill, and rim lighting for depth',
       atmosphere: 'Refined elegance with premium bokeh and professional depth of field',
+      autoEffects: 'Add subtle golden glow around subjects, enhance vehicle shine and reflections, create premium background blur',
     },
     dynamic: {
       visual: 'High-energy, vibrant, action-oriented photography with motion and impact',
       colorGrade: 'Punchy, saturated colors with enhanced contrast. Cool highlights, warm midtones',
       lighting: 'Sharp, directional lighting with strong shadows for dimension and drama',
       atmosphere: 'Energetic with slight motion blur suggestion in background elements',
+      autoEffects: 'Add vibrant color pop, enhance energy with subtle radial glow, boost saturation on vehicle colors',
     },
     family: {
       visual: 'Warm, inviting, and genuine moments with natural beauty and approachability',
       colorGrade: 'Bright, warm, and natural with enhanced golden hour tones',
       lighting: 'Soft, diffused natural lighting that\'s flattering and welcoming',
       atmosphere: 'Comfortable and authentic with gentle bokeh and natural depth',
+      autoEffects: 'Add warm golden-hour glow, soften skin tones naturally, create welcoming soft-focus background',
     },
     modern: {
       visual: 'Clean, minimalist, and contemporary with perfect technical execution',
       colorGrade: 'Balanced, true-to-life colors with enhanced clarity and sharpness',
       lighting: 'Even, studio-quality lighting with subtle modeling',
       atmosphere: 'Crisp and professional with controlled background separation',
+      autoEffects: 'Add clean edge enhancement, subtle clarity boost, professional background separation with soft blur',
     },
   };
 
@@ -57,28 +62,38 @@ const getAdvancedThemePrompt = (theme: Theme, mode: AIMode = 'professional'): st
 **VISUAL DIRECTION:**
 ${themePrompt.visual}
 
+**AUTOMATIC ENHANCEMENT EFFECTS (APPLY THESE):**
+${themePrompt.autoEffects}
+- Add professional glow and atmosphere automatically
+- Enhance lighting quality with soft ambient enhancement
+- Create visual depth with intelligent background softening
+- Apply dealership-ready polish and professional finish
+
 **COLOR SCIENCE:**
 ${themePrompt.colorGrade}
 - Apply professional color grading with accurate skin tones
 - Enhance micro-contrast without crushing blacks or blowing highlights
 - Perfect white balance with creative intent
+- Boost colors to make them Instagram/social media ready
 
 **LIGHTING DESIGN:**
 ${themePrompt.lighting}
 - Ensure consistent light directionality throughout the scene
 - Add subtle environment lighting reflections
 - Preserve natural catchlights in eyes
+- Automatically enhance existing light sources
 
 **ATMOSPHERE & DEPTH:**
 ${themePrompt.atmosphere}
 - Professional depth of field with smooth bokeh
 - Subtle atmospheric perspective and haze
 - Perfect edge detail preservation on subjects
+- Create "wow factor" with professional visual effects
 `;
 };
 
 /**
- * AI Mode-specific instructions
+ * AI Mode-specific instructions with automatic enhancement
  */
 const getModeInstructions = (mode: AIMode): string => {
   const modeSpecs = {
@@ -87,6 +102,8 @@ const getModeInstructions = (mode: AIMode): string => {
 - Perfect technical quality: tack-sharp focus, zero noise, perfect exposure
 - Professional retouching: subtle skin smoothing, blemish removal, perfect highlights
 - Commercial-grade color accuracy and consistency
+- AUTOMATICALLY apply professional glow and polish effects
+- Make the photo look like it came from a professional photographer
 `,
     cinematic: `
 - Apply Hollywood-grade color grading with film-like quality
@@ -94,6 +111,7 @@ const getModeInstructions = (mode: AIMode): string => {
 - Add subtle film grain and texture for authenticity
 - Create dramatic contrast with rich, deep blacks and creamy highlights
 - Think Christopher Nolan meets Annie Leibovitz
+- AUTOMATICALLY add cinematic atmosphere and depth
 `,
     portrait: `
 - Master portrait photographer quality (think Peter Hurley, Annie Leibovitz)
@@ -101,6 +119,7 @@ const getModeInstructions = (mode: AIMode): string => {
 - Beautiful eye enhancement with natural catchlights
 - Professional hair and clothing detail enhancement
 - Flattering facial contouring through light and shadow
+- AUTOMATICALLY enhance portrait quality with professional effects
 `,
     creative: `
 - Push creative boundaries while maintaining realism
@@ -108,6 +127,7 @@ const getModeInstructions = (mode: AIMode): string => {
 - Artistic composition enhancements
 - Unique atmospheric effects and mood creation
 - Stand-out social media worthy aesthetics
+- AUTOMATICALLY apply creative visual effects and unique styling
 `,
     natural: `
 - Enhance natural beauty without artificial over-processing
@@ -115,6 +135,7 @@ const getModeInstructions = (mode: AIMode): string => {
 - Preserve authentic moments and genuine expressions
 - Clean, bright, and crisp with perfect white balance
 - Editorial magazine quality with natural aesthetic
+- AUTOMATICALLY polish while maintaining natural feel
 `,
   };
 
@@ -200,7 +221,8 @@ export const generateInspirationalMessage = async (theme: Theme): Promise<string
 };
 
 /**
- * Analyze an image and generate a short, platform-ready caption
+ * Analyze an image and generate a dealership-focused social media caption
+ * Optimized for car dealership customer delivery and vehicle handoff moments
  */
 export const generateCaptionFromImage = async (
   base64ImageData: string,
@@ -211,57 +233,41 @@ export const generateCaptionFromImage = async (
     maxWords?: number; // default 14-20 words
   }
 ): Promise<string> => {
-  const tone = options?.tone || 'friendly';
   const includeHashtags = options?.includeHashtags ?? true;
-  const maxWords = options?.maxWords ?? 18;
+  const maxWords = options?.maxWords ?? 20;
 
-  // Extended tone-specific guidance (11 tones)
-  const toneGuidance = {
-    friendly: 'Warm, approachable, conversational. Use "I" or "we" perspective. Express genuine emotion and connection.',
-    professional: 'Polished, confident, authoritative. Showcase expertise and credibility. Include value proposition.',
-    fun: 'Playful, witty, energetic. Use humor, wordplay, or clever observations. Make it shareable and entertaining.',
-    luxury: 'Sophisticated, elegant, aspirational. Highlight exclusivity and premium quality. Inspire admiration.',
-    witty: 'Clever humor, wordplay, unexpected twists. Quick-witted observations. Make people laugh and share. Use puns or funny perspectives.',
-    inspirational: 'Uplifting, hopeful, transformative. Encourage dreams and positivity. Use metaphors of growth and possibility. Motivate without preaching.',
-    motivational: 'Action-oriented, empowering, goal-focused. Call to action. Inspire hustle and achievement. Build confidence and determination.',
-    poetic: 'Artistic, metaphorical, expressive. Use vivid imagery and emotional depth. Paint a picture with words. Lyrical and beautiful.',
-    bold: 'Confident, daring, statement-making. Unapologetic perspective. Take a stand. Make a powerful declaration. Be brave and authentic.',
-    humble: 'Modest, genuine, relatable. Show vulnerability and authenticity. Celebrate simple moments. Connect through honesty and humility.',
-    trendy: 'Current, viral, pop-culture aware. Use trending phrases and references. Stay timely and relevant. Appeal to social media trends.',
-  };
+  const prompt = `You are a social media expert specializing in automotive dealership content that drives engagement and builds trust.
 
-  // Tone-specific example captions
-  const toneExamples = {
-    friendly: '"Living for these golden hour moments ✨ Nothing beats this vibe"',
-    professional: '"Excellence isn\'t an act, it\'s a habit. Elevating every frame."',
-    fun: '"POV: You just realized how incredible this shot turned out 📸"',
-    luxury: '"Where perfection meets artistry. This is what premium looks like."',
-    witty: '"This is what confidence looks like when it\'s caught off guard 😏"',
-    inspirational: '"The best version of you is always just one shot away ✨"',
-    motivational: '"Stop waiting for the perfect moment. This IS the moment. 💪"',
-    poetic: '"In the light, I found myself. In the moment, I found magic."',
-    bold: '"Unapologetically myself. No filter needed, just authenticity."',
-    humble: '"Just grateful for simple moments and good lighting"',
-    trendy: '"That\'s the vibe check ✓ Main character energy unlocked 💫"',
-  };
+CONTEXT: This is a customer vehicle delivery photo for a car dealership's social media.
 
-  const prompt = `You are an award-winning social media copywriter who creates captions that get engagement.
+ANALYZE THE PHOTO:
+- Look for: happy customers, vehicles, dealership setting, celebration moments
+- Identify the vehicle type if visible (sedan, SUV, truck, luxury car, etc.)
+- Note the mood and emotional tone of the moment
 
-ANALYZE THIS PHOTO:
-Look closely at the mood, lighting, subjects, and overall vibe. Identify what makes this photo special.
-
-WRITE A CAPTIVATING CAPTION:
+WRITE AN ENGAGING DEALERSHIP POST:
 - ${maxWords} words maximum
-- Tone: ${tone} (${toneGuidance[tone]})
-- Make it ENGAGING: Hook the reader, spark emotion, provoke thought, or encourage action
-- Be SPECIFIC to what's actually in the image - not generic
-- ${includeHashtags ? 'End with 2-4 relevant, concise hashtags (no spaces)' : 'No hashtags'}
+- Celebrate the customer's moment (congratulate them on their new vehicle)
+- Express genuine excitement and pride in helping them
+- Use first-person plural "we" or "our team" perspective (dealership voice)
+- Make it feel personal and authentic, not salesy
+- Create emotional connection - this is about the customer's joy and milestone
+- ${includeHashtags ? 'End with 3-5 automotive/dealership hashtags' : 'No hashtags'}
 
-EXAMPLE FOR THIS TONE:
-${toneExamples[tone as keyof typeof toneExamples]}
+DEALERSHIP CAPTION EXAMPLES:
+"Congratulations to the Smith family on their beautiful new Tahoe! We loved being part of this special moment. Here's to many adventures ahead! 🚗✨ #NewCarDay #HappyCustomers #DealershipFamily"
 
-OUTPUT FORMAT:
-Write ONLY the caption text (and hashtags if requested). No explanations or other text.`;
+"Another dream delivered! So proud to hand over the keys to this stunning ride. Enjoy every mile! 🎉 #CustomerDelivery #NewCar #DreamCar #CarDelivery"
+
+"This smile says it all! Thrilled to welcome another happy customer to our family. Congrats on the new wheels! 🔥 #NewVehicle #CustomerAppreciation #CarDealership"
+
+"Delivery day is our favorite day! Huge congratulations on this incredible vehicle. Drive safe and enjoy every moment! 💯 #VehicleDelivery #NewCar #HappyCustomer #DealershipLife"
+
+IMPORTANT RULES:
+- Focus on the CUSTOMER'S happiness and milestone, not just the vehicle
+- Keep it genuine and celebratory - dealerships are in the joy business
+- Use automotive and dealership hashtags (like #NewCarDay #CustomerDelivery #DealershipFamily #CarDelivery)
+- Write ONLY the caption text. No explanations, quotes, or extra formatting.`;
 
 
   try {

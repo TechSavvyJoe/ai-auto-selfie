@@ -55,9 +55,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       const base64Data = base64Match[2];
       
       const aiCaption = await generateCaptionFromImage(base64Data, mimeType, {
-        tone: 'professional',
         includeHashtags: true,
-        maxWords: 18,
+        maxWords: 25, // Longer for dealership celebration posts
       });
       
       setCaption(aiCaption);
