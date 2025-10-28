@@ -17,14 +17,15 @@ const CameraView = lazy(() => import('./components/CameraView'));
 const EditView = lazy(() => import('./components/EditView'));
 const ResultView = lazy(() => import('./components/ResultView'));
 const GalleryView = lazy(() => import('./components/HistoryView'));
-const DesktopGalleryView = lazy(() => import('./components/DesktopGalleryView'));
 const GalleryDetailView = lazy(() => import('./components/HistoryDetailView'));
 const ShortcutsHelpDialog = lazy(() => import('./components/ShortcutsHelpDialog'));
 const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
 const BatchEnhancePanel = lazy(() => import('./components/BatchEnhancePanel'));
-const DesktopStartView = lazy(() => import('./components/DesktopStartView'));
+const PremiumDesktopStartView = lazy(() => import('./components/PremiumDesktopStartView'));
+const EnhancedDesktopGalleryView = lazy(() => import('./components/EnhancedDesktopGalleryView'));
+const PremiumExportDialog = lazy(() => import('./components/PremiumExportDialog'));
 
 interface StartViewProps {
   onStart: () => void;
@@ -224,7 +225,7 @@ const AppContent: React.FC = () => {
       case AppState.START:
         return isDesktop ? (
           <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
-            <DesktopStartView
+            <PremiumDesktopStartView
               onStart={startNewPost}
               onViewGallery={viewGallery}
               galleryStats={galleryStats}
@@ -264,7 +265,7 @@ const AppContent: React.FC = () => {
         return (
             <Suspense fallback={<div className="flex h-full items-center justify-center"><Spinner /></div>}>
           {isDesktop ? (
-            <DesktopGalleryView
+            <EnhancedDesktopGalleryView
               gallery={gallery}
               onSelectImage={selectGalleryImage}
               onClearGallery={clearGallery}

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import Button from './common/Button';
+import { PremiumButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 import GalleryCard from './GalleryCard';
 import EnhancedImagePreview from './EnhancedImagePreview';
@@ -240,25 +241,25 @@ const EnhancedDesktopGalleryView: React.FC<EnhancedDesktopGalleryViewProps> = ({
               </span>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => setSelectedImages(new Set())} variant="secondary" size="small">
+              <PremiumButton onClick={() => setSelectedImages(new Set())} variant="secondary" size="sm">
                 Cancel
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleBulkDownload}
                 variant="secondary"
-                size="small"
+                size="sm"
                 icon={<Icon type="download" className="w-4 h-4" />}
               >
                 Download All
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleBulkDelete}
                 variant="danger"
-                size="small"
+                size="sm"
                 icon={<Icon type="trash" className="w-4 h-4" />}
               >
                 Delete
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         )}
@@ -275,29 +276,29 @@ const EnhancedDesktopGalleryView: React.FC<EnhancedDesktopGalleryViewProps> = ({
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
+              <PremiumButton
                 onClick={() => setShowAnalytics(!showAnalytics)}
                 variant="secondary"
-                size="small"
+                size="sm"
                 icon={<Icon type="bar-chart" className="w-4 h-4" />}
               >
                 Analytics
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={toggleAllSelection}
                 variant={selectedImages.size === filteredGallery.length ? "primary" : "secondary"}
-                size="small"
+                size="sm"
               >
                 {selectedImages.size === filteredGallery.length ? 'Deselect' : 'Select All'}
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleClearClick}
                 variant="danger"
-                size="small"
+                size="sm"
                 icon={<Icon type="trash" className="w-4 h-4" />}
               >
                 Clear All
-              </Button>
+              </PremiumButton>
             </div>
           </div>
 

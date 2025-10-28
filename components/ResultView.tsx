@@ -1,13 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, lazy } from 'react';
 import Button from './common/Button';
 import Icon from './common/Icon';
 import BeforeAfterSlider from './BeforeAfterSlider';
 import { useToast } from './common/ToastContainer';
-import ExportDialog from './ExportDialog';
 import CaptionEditor from './CaptionEditor';
 import { useAppContext } from '../context/AppContext';
 import { shareViaWebShare } from '../services/exportService';
 import { useAnalytics } from '../services/analyticsService';
+
+const PremiumExportDialog = lazy(() => import('./PremiumExportDialog'));
 
 interface ResultViewProps {
   imageSrc: string;
@@ -142,7 +143,7 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
         </Button>
       </div>
 
-      <ExportDialog
+      <PremiumExportDialog
         isOpen={showExport}
         onClose={() => setShowExport(false)}
         imageDataUrl={imageSrc}
