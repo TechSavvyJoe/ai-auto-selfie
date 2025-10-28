@@ -40,10 +40,11 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const presets = getPresetService();
 
   // ===== PRIMARY CAPTION STATE (THE STAR OF THIS COMPONENT) =====
-  const [primaryCaption, setPrimaryCaption] = useState('Another Happy Customer!');
+  const [primaryCaption, setPrimaryCaption] = useState('Generating caption...');
   const [isEditingCaption, setIsEditingCaption] = useState(false);
-  const [captionEditValue, setCaptionEditValue] = useState('Another Happy Customer!');
+  const [captionEditValue, setCaptionEditValue] = useState('Generating caption...');
   const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [hasGeneratedInitialCaption, setHasGeneratedInitialCaption] = useState(false);
 
   // ===== IMAGE ENHANCEMENT STATE =====
   const [theme, setTheme] = useState<Theme>('luxury'); // Default to luxury for dealerships
@@ -84,6 +85,56 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
     setPrimaryCaption(phrase);
     setCaptionEditValue(phrase);
   }, [theme]);
+
+  // Auto-generate AI caption when photo loads
+  useEffect(() => {
+    const generateInitialCaption = async () => {
+      if (!imageSrc || hasGeneratedInitialCaption) return;
+
+      try {
+        setIsGeneratingCaption(true);
+        setPrimaryCaption('Analyzing photo...');
+        setCaptionEditValue('Analyzing photo...');
+
+        const base64Match = imageSrc.match(/^data:([^;]+);base64,(.+)$/);
+        if (base64Match) {
+          const mimeType = base64Match[1];
+          const base64Data = base64Match[2];
+
+          // Get dealership settings for personalized caption
+          const settings = getSettingsService();
+          const tone = settings.getCaptionTone();
+          const dealershipName = settings.getDealershipName();
+          const dealershipCity = settings.getDealershipCity();
+
+          const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
+            (tone as any) || 'friendly';
+
+          const aiCaption = await generateCaptionFromImage(base64Data, mimeType, {
+            tone: generatorTone,
+            includeHashtags: false,
+            maxWords: 8,
+            dealershipName,
+            dealershipCity,
+          });
+
+          setPrimaryCaption(aiCaption);
+          setCaptionEditValue(aiCaption);
+          setHasGeneratedInitialCaption(true);
+        }
+      } catch (error) {
+        console.error('Failed to generate initial caption:', error);
+        // Fallback to theme-based caption
+        const fallback = getQuickOverlayPhrase(theme);
+        setPrimaryCaption(fallback);
+        setCaptionEditValue(fallback);
+      } finally {
+        setIsGeneratingCaption(false);
+      }
+    };
+
+    generateInitialCaption();
+  }, [imageSrc, theme, hasGeneratedInitialCaption]);
 
   const handleCaptionSaveClick = useCallback(() => {
     setPrimaryCaption(captionEditValue);
@@ -242,7 +293,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                     </>
                   ) : (
                     <>
-                      <span>✨</span> Auto-Generate
+                      <span>✨</span> {hasGeneratedInitialCaption ? 'Regenerate' : 'Auto-Generate'}
                     </>
                   )}
                 </button>
