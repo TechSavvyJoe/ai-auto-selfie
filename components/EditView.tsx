@@ -38,15 +38,15 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const presets = getPresetService();
 
   // ===== PRIMARY CAPTION STATE (THE STAR OF THIS COMPONENT) =====
-  const [primaryCaption, setPrimaryCaption] = useState('Elevate Your Vision');
+  const [primaryCaption, setPrimaryCaption] = useState('Another Happy Customer!');
   const [isEditingCaption, setIsEditingCaption] = useState(false);
-  const [captionEditValue, setCaptionEditValue] = useState('Elevate Your Vision');
+  const [captionEditValue, setCaptionEditValue] = useState('Another Happy Customer!');
   const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
 
   // ===== IMAGE ENHANCEMENT STATE =====
-  const [theme, setTheme] = useState<Theme>('modern');
-  const [aiMode, setAiMode] = useState<AIMode>('professional');
-  const [enhancementLevel, setEnhancementLevel] = useState<EnhancementLevel>('moderate');
+  const [theme, setTheme] = useState<Theme>('luxury'); // Default to luxury for dealerships
+  const [aiMode] = useState<AIMode>('professional'); // Always professional mode
+  const [enhancementLevel] = useState<EnhancementLevel>('dramatic'); // Always dramatic for wow factor
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('original');
 
   // ===== FINE-TUNING STATE =====
@@ -135,8 +135,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
       setAdjustments(preset.adjustments);
       if (preset.editOptions) {
         if (preset.editOptions.theme) setTheme(preset.editOptions.theme);
-        if (preset.editOptions.aiMode) setAiMode(preset.editOptions.aiMode);
-        if (preset.editOptions.enhancementLevel) setEnhancementLevel(preset.editOptions.enhancementLevel);
+        // aiMode and enhancementLevel are now fixed constants - ignore preset values
       }
       presets.recordUsage(presetId);
       setShowPresets(false);
@@ -263,45 +262,22 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
         </div>
 
         {/* ============================================ */}
-        {/* AI ENHANCEMENT OPTIONS */}
+        {/* AI ENHANCEMENT - SIMPLIFIED FOR DEALERSHIPS */}
         {/* ============================================ */}
         <div className="glass rounded-xl p-4 space-y-4">
           <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-3">⚡ AI Enhancement</h3>
-
-          <div>
-            <h4 className="text-xs text-white/60 mb-2 font-semibold">AI Mode</h4>
-            <SegmentedControl<AIMode>
-              options={[
-                { value: 'professional', label: 'Pro' },
-                { value: 'cinematic', label: 'Cinema' },
-                { value: 'portrait', label: 'Portrait' },
-                { value: 'creative', label: 'Creative' },
-                { value: 'natural', label: 'Natural' },
-              ]}
-              value={aiMode}
-              onChange={setAiMode}
-            />
-          </div>
-
-          <div>
-            <h4 className="text-xs text-white/60 mb-2 font-semibold">Enhancement Level</h4>
-            <SegmentedControl<EnhancementLevel>
-              options={[
-                { value: 'subtle', label: 'Subtle' },
-                { value: 'moderate', label: 'Balanced' },
-                { value: 'dramatic', label: 'Dramatic' },
-              ]}
-              value={enhancementLevel}
-              onChange={setEnhancementLevel}
-            />
+          
+          <div className="text-center py-3 px-4 bg-primary-500/10 border border-primary-500/30 rounded-lg">
+            <p className="text-xs text-primary-300 mb-1">✨ Auto-Enhancement Active</p>
+            <p className="text-xs text-white/70">AI will automatically apply professional styling, glow effects, and optimal enhancements</p>
           </div>
         </div>
 
         {/* ============================================ */}
-        {/* THEME SELECTION */}
+        {/* THEME SELECTION - SIMPLIFIED */}
         {/* ============================================ */}
         <div className="glass rounded-xl p-4">
-          <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-3">🎨 Theme</h3>
+          <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-3">🎨 Style</h3>
           <div className="grid grid-cols-2 gap-2">
             {themes.map(t => (
               <button
