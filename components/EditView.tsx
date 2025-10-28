@@ -68,6 +68,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   const [beautySettings, setBeautySettings] = useState<BeautySettings>(beautyService.getDefaultSettings());
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(blurService.getDefaultSettings());
   const [colorGrade, setColorGrade] = useState<ColorGrade>(colorService.getDefault());
+  const [selectedAiMode, setSelectedAiMode] = useState<any>({ id: 'professional', name: 'Professional' });
   const [showBeautyPanel, setShowBeautyPanel] = useState(false);
   const [showBlurPanel, setShowBlurPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
@@ -502,6 +503,43 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </button>
         </div>
 
+        {/* Additional Enhancements - Second Row */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <button
+            onClick={() => setShowStickerPanel(!showStickerPanel)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showStickerPanel
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="Sticker Library"
+          >
+            🎨 Stickers
+          </button>
+          <button
+            onClick={() => setShowAiModesPanel(!showAiModesPanel)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showAiModesPanel
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="AI Enhancement Modes"
+          >
+            🤖 AI Modes
+          </button>
+          <button
+            onClick={() => setShowPresetManager(!showPresetManager)}
+            className={`p-2 rounded-lg text-xs font-medium transition-all ${
+              showPresetManager
+                ? 'bg-primary-600/40 border border-primary-500/50 text-primary-200'
+                : 'bg-slate-700/40 border border-slate-600/50 text-slate-300 hover:border-primary-500/30'
+            }`}
+            title="Preset Manager"
+          >
+            💾 Presets
+          </button>
+        </div>
+
         {/* Beauty Panel */}
         {showBeautyPanel && (
           <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
@@ -520,6 +558,51 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
         {showColorPanel && (
           <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
             <ColorGradingPanel colorGrade={colorGrade} onChange={setColorGrade} />
+          </div>
+        )}
+
+        {/* Sticker Panel */}
+        {showStickerPanel && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <StickerPanel onSelectSticker={(sticker) => {
+              console.log('Sticker selected:', sticker);
+              // TODO: Add sticker to image overlay in future enhancement
+            }} onClose={() => setShowStickerPanel(false)} />
+          </div>
+        )}
+
+        {/* AI Modes Panel */}
+        {showAiModesPanel && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <AiModesPanel 
+              selectedMode={selectedAiMode} 
+              onChange={(mode) => {
+                setSelectedAiMode(mode);
+                console.log('AI Mode selected:', mode);
+              }}
+              useCase="selfie"
+            />
+          </div>
+        )}
+
+        {/* Preset Manager Panel */}
+        {showPresetManager && (
+          <div className="mb-3 p-3 rounded-lg bg-slate-700/20 border border-slate-600/30">
+            <PresetManagerPanel
+              onLoadPreset={(preset) => {
+                console.log('Loading preset:', preset);
+                // Apply preset settings
+                if (preset.settings?.beautySettings) setBeautySettings(preset.settings.beautySettings);
+                if (preset.settings?.blurSettings) setBlurSettings(preset.settings.blurSettings);
+                if (preset.settings?.colorGrade) setColorGrade(preset.settings.colorGrade);
+              }}
+              currentSettings={{
+                beautySettings,
+                blurSettings,
+                colorGrade,
+              }}
+              onClose={() => setShowPresetManager(false)}
+            />
           </div>
         )}
 
