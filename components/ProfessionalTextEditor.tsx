@@ -4,6 +4,7 @@ import Icon from './common/Icon';
 import { getAITextGeneratorService } from '../services/aiTextGeneratorService';
 import { useAnalytics } from '../services/analyticsService';
 import EmojiPicker from './EmojiPicker';
+import TextEffectsPanel, { TextEffect } from './TextEffectsPanel';
 
 interface TextEditorProps {
   onTextSelect: (text: string, style: any) => void;
@@ -39,6 +40,16 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [previewText, setPreviewText] = useState(currentText);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [textEffect, setTextEffect] = useState<TextEffect>({
+    glowIntensity: 0,
+    outlineWidth: 0,
+    outlineColor: '#000000',
+    shadowX: 0,
+    shadowY: 0,
+    shadowBlur: 0,
+    shadowColor: '#00000000',
+    effectType: 'none',
+  });
 
   // Prevent body scroll when modal is open, load suggestions on mount
   useEffect(() => {
@@ -114,15 +125,21 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
       return;
     }
 
-    onTextSelect(previewText, selectedStyle);
+    const styleWithEffects = {
+      ...selectedStyle,
+      textEffect, // Include the text effect
+    };
+
+    onTextSelect(previewText, styleWithEffects);
     trackFeature('apply_text_overlay', {
       style: selectedStyle.name,
       textLength: previewText.length,
+      effect: textEffect.effectType,
       source: activeTab
     });
     showToast('Text overlay applied!', 'success');
     onClose?.();
-  }, [previewText, selectedStyle, onTextSelect, showToast, trackFeature, activeTab, onClose]);
+  }, [previewText, selectedStyle, textEffect, onTextSelect, showToast, trackFeature, activeTab, onClose]);
 
   const handleCustomTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newText = e.target.value.slice(0, 100); // Max 100 chars
@@ -153,6 +170,53 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [previewText, selectedStyle, handleApplyText, onClose]);
+
+  const getTextEffectShadow = useCallback((): string => {
+    const shadows: string[] = [];
+
+    if (textEffect.effectType === 'glow' || textEffect.effectType === 'neon') {
+      for (let i = 1; i <= 3; i++) {
+        const blur = textEffect.shadowBlur * i;
+        shadows.push(`0 0 ${blur}px ${textEffect.shadowColor}`);
+      }
+    } else if (textEffect.effectType === 'outline') {
+      const directions = [
+        [-textEffect.outlineWidth, -textEffect.outlineWidth],
+        [-textEffect.outlineWidth, 0],
+        [-textEffect.outlineWidth, textEffect.outlineWidth],
+        [0, -textEffect.outlineWidth],
+        [0, textEffect.outlineWidth],
+        [textEffect.outlineWidth, -textEffect.outlineWidth],
+        [textEffect.outlineWidth, 0],
+        [textEffect.outlineWidth, textEffect.outlineWidth],
+      ];
+      directions.forEach(([dx, dy]) => {
+        shadows.push(`${dx}px ${dy}px 0 ${textEffect.outlineColor}`);
+      });
+    } else if (textEffect.effectType === 'shadow' || textEffect.effectType === 'dramatic') {
+      shadows.push(
+        `${textEffect.shadowX}px ${textEffect.shadowY}px ${textEffect.shadowBlur}px ${textEffect.shadowColor}`
+      );
+    }
+
+    if (textEffect.effectType === 'dramatic' && textEffect.outlineWidth > 0) {
+      const directions = [
+        [-textEffect.outlineWidth, -textEffect.outlineWidth],
+        [-textEffect.outlineWidth, 0],
+        [-textEffect.outlineWidth, textEffect.outlineWidth],
+        [0, -textEffect.outlineWidth],
+        [0, textEffect.outlineWidth],
+        [textEffect.outlineWidth, -textEffect.outlineWidth],
+        [textEffect.outlineWidth, 0],
+        [textEffect.outlineWidth, textEffect.outlineWidth],
+      ];
+      directions.forEach(([dx, dy]) => {
+        shadows.push(`${dx}px ${dy}px 0 ${textEffect.outlineColor}`);
+      });
+    }
+
+    return shadows.join(', ') || `0 0 8px rgba(0,0,0,0.5)`;
+  }, [textEffect]);
 
   const textGeneratorService = getAITextGeneratorService();
   const presets = textGeneratorService.getAllPresets();
@@ -340,6 +404,16 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
             </div>
           </div>
 
+          {/* Text Effects Panel */}
+          {selectedStyle && (
+            <TextEffectsPanel
+              effect={textEffect}
+              onChange={setTextEffect}
+              previewText={previewText}
+              baseColor={selectedStyle.color}
+            />
+          )}
+
           {/* Live Preview */}
           <div>
             <h3 className="text-sm font-semibold text-slate-200 mb-3">
@@ -359,7 +433,9 @@ const ProfessionalTextEditor: React.FC<TextEditorProps> = ({
                     backgroundColor: selectedStyle.bgColor,
                     fontSize: `${selectedStyle.fontSize}px`,
                     fontWeight: selectedStyle.fontWeight,
-                    textShadow: `0 0 ${selectedStyle.shadowBlur}px rgba(0,0,0,0.8)`,
+                    textShadow: textEffect.effectType !== 'none'
+                      ? getTextEffectShadow()
+                      : `0 0 ${selectedStyle.shadowBlur}px rgba(0,0,0,0.8)`,
                     textAlign: selectedStyle.textAlign,
                     padding: '12px 24px',
                     borderRadius: '8px',
