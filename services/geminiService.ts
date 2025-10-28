@@ -287,6 +287,69 @@ Write ONLY the caption text (and hashtags if requested). No explanations or othe
 };
 
 /**
+ * Generate relevant hashtags for an image
+ * Returns array of hashtags based on image content and tone
+ */
+export const generateHashtagsFromImage = async (
+  base64ImageData: string,
+  mimeType: string,
+  options?: {
+    count?: number; // How many hashtags (default 5)
+    trending?: boolean; // Include trending hashtags
+    tone?: string; // Tone/vibe of hashtags
+  }
+): Promise<string[]> => {
+  const count = options?.count || 5;
+  const trending = options?.trending ?? true;
+  const tone = options?.tone || 'general';
+
+  const prompt = `Analyze this image and generate ${count} relevant, trending hashtags.
+
+Requirements:
+- ${count} hashtags exactly
+- No hashtag symbol (#) - just the words
+- Mix of: specific + broader + trending tags
+- ${trending ? 'Include current trending hashtags' : 'Evergreen hashtags only'}
+- Tone: ${tone}
+- One per line
+
+Format:
+hashtag1
+hashtag2
+hashtag3
+(etc.)`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { text: prompt },
+          { inlineData: { data: base64ImageData, mimeType } },
+        ],
+      },
+    });
+
+    const text = (response as any)?.text || (response as any)?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join(' ');
+    if (!text || typeof text !== 'string') {
+      return ['photo', 'moment', 'day', 'vibes', 'blessed'];
+    }
+
+    // Parse hashtags from response
+    const hashtags = text
+      .split('\n')
+      .map((tag: string) => tag.trim().toLowerCase().replace(/^#/, '').replace(/[^a-z0-9]/g, ''))
+      .filter((tag: string) => tag.length > 0)
+      .slice(0, count);
+
+    return hashtags.length > 0 ? hashtags : ['photo', 'moment', 'day', 'vibes', 'blessed'];
+  } catch (error) {
+    console.error('Hashtag generation failed:', error);
+    return ['photo', 'moment', 'day', 'vibes', 'blessed'];
+  }
+};
+
+/**
  * Premium AI Image Enhancement
  */
 export const enhanceImageWithAI = async (
