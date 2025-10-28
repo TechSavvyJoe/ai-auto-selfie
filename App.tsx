@@ -74,7 +74,7 @@ const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery
         </h1>
         <p className="text-xl text-white/80 sm:text-2xl max-w-2xl mx-auto leading-relaxed animate-in fade-in duration-700" style={{ animationDelay: '200ms' }}>
           Professional-grade AI enhancement that makes every photo extraordinary.
-          <span className="block mt-3 text-base text-white/60 font-medium">⚡ Powered by Google Gemini 2.0</span>
+          <span className="block mt-3 text-base text-white/60 font-medium">⚡ Powered by Google Gemini 2.5</span>
         </p>
       </div>
 

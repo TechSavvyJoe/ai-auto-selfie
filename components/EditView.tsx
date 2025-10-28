@@ -144,9 +144,12 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
     });
   }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted, overlays]);
   
-  const ControlGroup: React.FC<{title: string; children: React.ReactNode; className?: string}> = ({title, children, className}) => (
-    <div className={`flex flex-col gap-3 p-4 bg-gradient-to-br from-gray-800/60 to-gray-900/40 rounded-xl shadow-md border border-white/5 backdrop-blur-sm ${className}`}>
-        <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 border-b border-primary-500/20 pb-2 mb-2">{title}</h3>
+  const ControlGroup: React.FC<{title: string; children: React.ReactNode; className?: string; icon?: string}> = ({title, children, className, icon}) => (
+    <div className={`flex flex-col gap-3 p-4 rounded-xl shadow-lg border transition-all duration-300 hover:border-primary-500/50 bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/50 border-slate-700/50 backdrop-blur ${className}`}>
+        <div className="flex items-center gap-2 mb-1">
+          {icon && <span className="text-lg">{icon}</span>}
+          <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-primary-200">{title}</h3>
+        </div>
         {children}
     </div>
   );
@@ -193,7 +196,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
             />
           </div>
         </div>
-        <ControlGroup title="Select Creative Theme">
+        <ControlGroup title="Select Creative Theme" icon="🎨">
             <div className="grid grid-cols-2 gap-3">
                 {themes.map(t => (
                     <button key={t.id} onClick={() => setTheme(t.id)} className={`p-3 rounded-lg text-left transition-all duration-200 border-2 ${theme === t.id ? 'bg-gradient-to-br from-primary-500 to-primary-600 border-primary-400 shadow-lg shadow-primary-500/30' : 'bg-gray-700 border-gray-600 hover:border-primary-500 hover:bg-gray-600'}`}>
@@ -204,7 +207,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
             </div>
         </ControlGroup>
         
-        <ControlGroup title="Customize Text & Brand">
+        <ControlGroup title="Customize Text & Brand" icon="📝">
           <div className="space-y-3">
       <div className="flex items-center gap-2">
         <input type="text" value={message} onChange={e => setMessage(e.target.value)} maxLength={48} placeholder="Primary message..." className="w-full bg-gray-700 text-white text-sm p-2.5 rounded-md border border-gray-600 focus:border-primary-500 focus:ring-primary-500 transition-colors" />
@@ -227,7 +230,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </div>
         </ControlGroup>
 
-        <ControlGroup title="Layout & Formatting">
+        <ControlGroup title="Layout & Formatting" icon="📐">
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <h5 className="text-xs text-white/60 mb-1.5">Aspect Ratio</h5>
@@ -249,11 +252,11 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
             </div>
         </ControlGroup>
 
-        <ControlGroup title="Text & Stickers">
+        <ControlGroup title="Text & Stickers" icon="✨">
           <OverlaysPanel overlays={overlays} onChange={setOverlays} />
         </ControlGroup>
 
-        <ControlGroup title="Professional Adjustments">
+        <ControlGroup title="Professional Adjustments" icon="⚙️">
           <button
             type="button"
             onClick={() => setExpandAdjustments(!expandAdjustments)}

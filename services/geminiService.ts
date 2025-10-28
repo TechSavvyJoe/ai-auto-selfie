@@ -300,6 +300,13 @@ You are a world-renowned photographer combining technical mastery with artistic 
   - Zero alteration to facial features, body proportions, or identity
   - Preserve natural expressions and authentic moments
 
+✓ PRESERVE 100% BACKGROUND & CONTEXT
+  - Background elements (cars, buildings, scenery) remain COMPLETELY UNCHANGED
+  - No background replacement, removal, or significant alterations
+  - Only enhance existing background (lighting, clarity) - never modify content
+  - If there's a car in the background: enhance its appearance but keep it EXACTLY as it is
+  - This is a selfie enhancement, not a scene recreation
+
 ✓ STRICT ASPECT RATIO: ${aspectRatioDescriptions[aspectRatio]}
   - Compose and crop to exact specifications
   - Maintain subject as focal point within frame
@@ -396,6 +403,13 @@ ${getAdjustmentHints(adjustments)}
 - Teeth: Subtle whitening if visible
 - Hair: Enhanced detail and natural shine
 - Clothing: Wrinkle reduction, perfect creases
+
+**Background Treatment**:
+- NEVER replace or remove background elements
+- NEVER use AI tools to change what's behind the subject
+- ONLY enhance existing background (improve clarity, lighting, reduce noise)
+- If there's a vehicle/car in background: enhance it but keep it exactly as photographed
+- Maintain all spatial relationships and composition exactly as original
 
 ═══════════════════════════════════════════════════════════════
 ✅ FINAL QUALITY ASSURANCE

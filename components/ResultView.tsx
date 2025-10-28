@@ -7,6 +7,7 @@ import CaptionEditor from './CaptionEditor';
 import { useAppContext } from '../context/AppContext';
 import { shareViaWebShare } from '../services/exportService';
 import { useAnalytics } from '../services/analyticsService';
+import { getSmartDownloadService } from '../services/smartDownloadService';
 
 const PremiumExportDialog = lazy(() => import('./PremiumExportDialog'));
 
@@ -33,37 +34,20 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
 
   const handleSave = useCallback(async () => {
     try {
-      // Check if we're on a mobile device
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const downloadService = getSmartDownloadService();
+      const result = await downloadService.smartDownload(imageSrc, 'enhanced-photo');
 
-      if (isIOS && 'files' in navigator && navigator.files) {
-        // iOS Web API for saving to camera roll
-        try {
-          const response = await fetch(imageSrc);
-          const blob = await response.blob();
-          const file = new File([blob], `enhanced-photo-${new Date().toISOString().slice(0, 10)}.jpg`, { type: 'image/jpeg' });
-
-          const dataTransfer = new DataTransfer();
-          dataTransfer.items.add(file);
-          showToast('Image saved to camera roll!', 'success');
-        } catch (e) {
-          throw e;
-        }
+      if (result.success) {
+        showToast(result.message, 'success');
+        trackFeature('download_image', { method: result.method, platform: result.platform });
       } else {
-        // Desktop download
-        const link = document.createElement('a');
-        link.href = imageSrc;
-        link.download = `enhanced-photo-${new Date().toISOString().slice(0, 10)}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showToast('Image downloaded successfully!', 'success');
+        showToast(result.message, 'error');
       }
     } catch (error) {
-      showToast('Failed to save image', 'error');
+      showToast('Failed to save image. Please try again.', 'error');
       console.error('Save error:', error);
     }
-  }, [imageSrc, showToast]);
+  }, [imageSrc, showToast, trackFeature]);
 
   const handleQuickShare = useCallback(async () => {
     if (!('share' in navigator)) {

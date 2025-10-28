@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { PremiumButton, IconButton } from './common/PremiumButton';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
 import Icon from './common/Icon';
 import { OverlayItem, TextOverlay, StickerOverlay, OverlayPosition } from '../types';
+
+const ProfessionalTextEditor = lazy(() => import('./ProfessionalTextEditor'));
 
 export interface OverlaysPanelProps {
   overlays: OverlayItem[];
@@ -20,27 +22,39 @@ const emojiSet = ['✨', '🔥', '❤️', '🎉', '😎', '💯', '🌟', '🚀
 
 export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange }) => {
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [showTextEditor, setShowTextEditor] = React.useState(false);
 
   const addText = () => {
+    setShowTextEditor(true);
+  };
+
+  const handleTextEditorSelect = (text: string, style: any) => {
+    // Parse bgColor - handle rgba format
+    let bgColorString = style.bgColor;
+    if (typeof bgColorString !== 'string') {
+      bgColorString = 'rgba(0,0,0,0.35)';
+    }
+
     const item: TextOverlay = {
       id: `text_${Date.now()}`,
       type: 'text',
-      text: 'Your caption',
-      color: '#ffffff',
-      bgColor: 'rgba(0,0,0,0.35)',
+      text,
+      color: style.color || '#ffffff',
+      bgColor: bgColorString,
       position: 'bottom',
       scale: 1,
       opacity: 1,
-      fontSize: 24,
-      fontWeight: 'bold' as const,
-      textAlign: 'center' as const,
-      shadowBlur: 2,
+      fontSize: style.fontSize || 24,
+      fontWeight: style.fontWeight || ('bold' as const),
+      textAlign: style.textAlign || ('center' as const),
+      shadowBlur: style.shadowBlur || 2,
       shadowOffsetX: 0,
       shadowOffsetY: 2,
       shadowColor: '#000000',
     };
     onChange([...overlays, item]);
     setActiveId(item.id);
+    setShowTextEditor(false);
   };
 
   const addEmoji = (emoji: string) => {
@@ -293,6 +307,21 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
               />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Professional Text Editor Modal */}
+      {showTextEditor && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 rounded-xl">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl">
+            <Suspense fallback={<div className="p-8 text-center text-white">Loading editor...</div>}>
+              <ProfessionalTextEditor
+                onTextSelect={handleTextEditorSelect}
+                onClose={() => setShowTextEditor(false)}
+                aiMode="professional"
+              />
+            </Suspense>
+          </div>
         </div>
       )}
     </div>
