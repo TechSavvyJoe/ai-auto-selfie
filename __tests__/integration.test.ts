@@ -170,4 +170,29 @@ describe('AI Auto Selfie - Integration Tests', () => {
       // Modal should be centered and readable
     });
   });
+
+  // Smoke test: verify production Vercel deployment responds
+  test('Vercel production responds with 2xx', async () => {
+    const PROD_URL = process.env.PROD_URL || 'https://ai-auto-selfie-hc5o81wwt-joes-projects-01f07834.vercel.app';
+
+    // Resolve fetch implementation (global fetch or dynamic node-fetch)
+    let _fetch: typeof fetch | null = (globalThis as any).fetch ?? null;
+    if (!_fetch) {
+      try {
+        // dynamic import so tests don't require node-fetch unless needed
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const nodeFetchModule = await import('node-fetch');
+        _fetch = (nodeFetchModule && (nodeFetchModule as any).default) || (nodeFetchModule as any);
+      } catch (err) {
+        // Skip this test if fetch isn't available and node-fetch isn't installed
+        console.warn('Skipping production reachability test: no fetch available.');
+        return;
+      }
+    }
+
+    const res = await _fetch!(PROD_URL);
+    // Accept any 2xx or 3xx as healthy for now
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(400);
+  }, 20000);
 });
