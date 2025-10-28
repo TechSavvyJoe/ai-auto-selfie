@@ -4,7 +4,7 @@ import Icon from './common/Icon';
 import { EditOptions, Theme, AspectRatio, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS, OverlayItem } from '../types';
 import { generateInspirationalMessage } from '../services/geminiService';
 import * as storage from '../services/storageService';
-import { usePresets } from '../services/presetService';
+import { getPresetService } from '../services/presetService';
 import Spinner from './common/Spinner';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
@@ -26,7 +26,7 @@ const themes: { id: Theme; label: string; description: string; icon: React.React
 ];
 
 const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
-  const presets = usePresets();
+  const presets = getPresetService();
 
   // ===== PRIMARY CAPTION STATE (THE STAR OF THIS COMPONENT) =====
   const [primaryCaption, setPrimaryCaption] = useState('Elevate Your Vision');
