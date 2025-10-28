@@ -118,16 +118,36 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             </button>
 
             <div className="mt-4">
-              <h3 className="text-sm font-semibold text-white mb-2">Caption Preferences</h3>
-              <SegmentedControl<'friendly' | 'formal' | 'brief'>
-                options={[
-                  { value: 'friendly', label: 'Friendly' },
-                  { value: 'formal', label: 'Formal' },
-                  { value: 'brief', label: 'Brief' },
-                ]}
-                value={(preferences as any).captionTone || 'friendly'}
-                onChange={handleCaptionToneChange}
-              />
+              <h3 className="text-sm font-semibold text-white mb-3">Caption Tone</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'friendly', label: 'Friendly', desc: 'Warm & genuine' },
+                  { value: 'professional', label: 'Professional', desc: 'Polished & expert' },
+                  { value: 'fun', label: 'Fun', desc: 'Playful & witty' },
+                  { value: 'luxury', label: 'Luxury', desc: 'Sophisticated' },
+                  { value: 'witty', label: 'Witty', desc: 'Clever & funny' },
+                  { value: 'inspirational', label: 'Inspirational', desc: 'Uplifting' },
+                  { value: 'motivational', label: 'Motivational', desc: 'Empowering' },
+                  { value: 'poetic', label: 'Poetic', desc: 'Artistic' },
+                  { value: 'bold', label: 'Bold', desc: 'Daring & brave' },
+                  { value: 'humble', label: 'Humble', desc: 'Genuine & real' },
+                  { value: 'trendy', label: 'Trendy', desc: 'Current & viral' },
+                ].map((tone) => (
+                  <button
+                    type="button"
+                    key={tone.value}
+                    onClick={() => handleCaptionToneChange(tone.value as any)}
+                    className={`p-2 rounded-lg text-left text-xs transition-all duration-200 border-2 ${
+                      ((preferences as any).captionTone || 'friendly') === tone.value
+                        ? 'bg-primary-600/20 border-primary-500 shadow-md'
+                        : 'bg-gray-700 border-gray-600 hover:border-primary-500'
+                    }`}
+                  >
+                    <div className="font-semibold text-white">{tone.label}</div>
+                    <div className="text-white/60">{tone.desc}</div>
+                  </button>
+                ))}
+              </div>
 
               <button
                 onClick={handleIncludeHashtagsToggle}

@@ -172,10 +172,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const settingsService = getSettingsService();
             const tone = settingsService.getCaptionTone();
             const includeHashtags = settingsService.isIncludeHashtagsEnabled();
-            // Map user-facing tone to generator-supported tone values
-            const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' =
-              tone === 'formal' ? 'professional' : tone === 'friendly' ? 'friendly' : 'friendly';
-            const maxWords = tone === 'brief' ? 10 : 32;
+            // Support all 11 caption tones
+            const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
+              tone as any || 'friendly';
+            const maxWords = 18; // Standard word count for all tones
             caption = await generateCaptionFromImage(base64Out, 'image/jpeg', {
               tone: generatorTone,
               includeHashtags,

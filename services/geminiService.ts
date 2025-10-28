@@ -206,7 +206,7 @@ export const generateCaptionFromImage = async (
   base64ImageData: string,
   mimeType: string,
   options?: {
-    tone?: 'friendly' | 'professional' | 'fun' | 'luxury';
+    tone?: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy';
     includeHashtags?: boolean;
     maxWords?: number; // default 14-20 words
   }
@@ -215,12 +215,34 @@ export const generateCaptionFromImage = async (
   const includeHashtags = options?.includeHashtags ?? true;
   const maxWords = options?.maxWords ?? 18;
 
-  // Tone-specific guidance
+  // Extended tone-specific guidance (11 tones)
   const toneGuidance = {
-    friendly: 'Warm, approachable, conversational. Use "I" or "we" perspective. Express genuine emotion.',
+    friendly: 'Warm, approachable, conversational. Use "I" or "we" perspective. Express genuine emotion and connection.',
     professional: 'Polished, confident, authoritative. Showcase expertise and credibility. Include value proposition.',
-    fun: 'Playful, witty, energetic. Use humor, wordplay, or clever observations. Make it shareable.',
+    fun: 'Playful, witty, energetic. Use humor, wordplay, or clever observations. Make it shareable and entertaining.',
     luxury: 'Sophisticated, elegant, aspirational. Highlight exclusivity and premium quality. Inspire admiration.',
+    witty: 'Clever humor, wordplay, unexpected twists. Quick-witted observations. Make people laugh and share. Use puns or funny perspectives.',
+    inspirational: 'Uplifting, hopeful, transformative. Encourage dreams and positivity. Use metaphors of growth and possibility. Motivate without preaching.',
+    motivational: 'Action-oriented, empowering, goal-focused. Call to action. Inspire hustle and achievement. Build confidence and determination.',
+    poetic: 'Artistic, metaphorical, expressive. Use vivid imagery and emotional depth. Paint a picture with words. Lyrical and beautiful.',
+    bold: 'Confident, daring, statement-making. Unapologetic perspective. Take a stand. Make a powerful declaration. Be brave and authentic.',
+    humble: 'Modest, genuine, relatable. Show vulnerability and authenticity. Celebrate simple moments. Connect through honesty and humility.',
+    trendy: 'Current, viral, pop-culture aware. Use trending phrases and references. Stay timely and relevant. Appeal to social media trends.',
+  };
+
+  // Tone-specific example captions
+  const toneExamples = {
+    friendly: '"Living for these golden hour moments ✨ Nothing beats this vibe"',
+    professional: '"Excellence isn\'t an act, it\'s a habit. Elevating every frame."',
+    fun: '"POV: You just realized how incredible this shot turned out 📸"',
+    luxury: '"Where perfection meets artistry. This is what premium looks like."',
+    witty: '"This is what confidence looks like when it\'s caught off guard 😏"',
+    inspirational: '"The best version of you is always just one shot away ✨"',
+    motivational: '"Stop waiting for the perfect moment. This IS the moment. 💪"',
+    poetic: '"In the light, I found myself. In the moment, I found magic."',
+    bold: '"Unapologetically myself. No filter needed, just authenticity."',
+    humble: '"Just grateful for simple moments and good lighting"',
+    trendy: '"That\'s the vibe check ✓ Main character energy unlocked 💫"',
   };
 
   const prompt = `You are an award-winning social media copywriter who creates captions that get engagement.
@@ -235,11 +257,8 @@ WRITE A CAPTIVATING CAPTION:
 - Be SPECIFIC to what's actually in the image - not generic
 - ${includeHashtags ? 'End with 2-4 relevant, concise hashtags (no spaces)' : 'No hashtags'}
 
-EXAMPLES FOR YOUR TONE (${tone}):
-${tone === 'friendly' ? '- "Living for these golden hour moments ✨ Nothing beats this vibe"' :
-  tone === 'professional' ? '- "Excellence isn\'t an act, it\'s a habit. Elevating every frame."' :
-  tone === 'fun' ? '- "POV: You just realized how incredible this shot turned out 📸"' :
-  '- "Where perfection meets artistry. This is what premium looks like."'}
+EXAMPLE FOR THIS TONE:
+${toneExamples[tone as keyof typeof toneExamples]}
 
 OUTPUT FORMAT:
 Write ONLY the caption text (and hashtags if requested). No explanations or other text.`;
