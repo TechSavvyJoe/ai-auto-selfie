@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import Button from './common/Button';
+import { PremiumButton, IconButton } from './common/PremiumButton';
+import { PremiumCard } from './common/PremiumCard';
 import Icon from './common/Icon';
 // FIX: Import LogoData to fix type error.
 import { EditOptions, Theme, AspectRatio, LogoPosition, LogoData, AIMode, EnhancementLevel, ImageAdjustments, DEFAULT_IMAGE_ADJUSTMENTS, OverlayItem } from '../types';
@@ -144,8 +145,8 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
   }, [onEnhance, theme, message, ctaText, logoData, aspectRatio, logoPosition, aiMode, enhancementLevel, adjustments, compareMode, isAdjusted, overlays]);
   
   const ControlGroup: React.FC<{title: string; children: React.ReactNode; className?: string}> = ({title, children, className}) => (
-    <div className={`flex flex-col gap-3 p-4 bg-gray-800/50 rounded-xl shadow-md ${className}`}>
-        <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-2">{title}</h3>
+    <div className={`flex flex-col gap-3 p-4 bg-gradient-to-br from-gray-800/60 to-gray-900/40 rounded-xl shadow-md border border-white/5 backdrop-blur-sm ${className}`}>
+        <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 border-b border-primary-500/20 pb-2 mb-2">{title}</h3>
         {children}
     </div>
   );
@@ -195,7 +196,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
         <ControlGroup title="Select Creative Theme">
             <div className="grid grid-cols-2 gap-3">
                 {themes.map(t => (
-                    <button key={t.id} onClick={() => setTheme(t.id)} className={`p-3 rounded-lg text-left transition-all duration-200 border-2 ${theme === t.id ? 'bg-blue-600 border-blue-400' : 'bg-gray-700 border-gray-600 hover:border-gray-500'}`}>
+                    <button key={t.id} onClick={() => setTheme(t.id)} className={`p-3 rounded-lg text-left transition-all duration-200 border-2 ${theme === t.id ? 'bg-gradient-to-br from-primary-500 to-primary-600 border-primary-400 shadow-lg shadow-primary-500/30' : 'bg-gray-700 border-gray-600 hover:border-primary-500 hover:bg-gray-600'}`}>
                         <h4 className="font-bold text-white">{t.label}</h4>
                         <p className="text-xs text-white/70">{t.description}</p>
                     </button>
@@ -206,15 +207,20 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
         <ControlGroup title="Customize Text & Brand">
           <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <input type="text" value={message} onChange={e => setMessage(e.target.value)} maxLength={48} placeholder="Primary message..." className="w-full bg-gray-700 text-white text-sm p-2.5 rounded-md border border-gray-600 focus:border-blue-500 focus:ring-blue-500" />
-                 <button onClick={handleInspireMe} disabled={isGeneratingMessage} className="p-2.5 rounded-md transition-colors bg-gray-700 hover:bg-gray-600 disabled:opacity-50">
-                    {isGeneratingMessage ? <Spinner /> : <Icon type="sparkles" className="w-5 h-5 text-yellow-300"/>}
-                </button>
+        <input type="text" value={message} onChange={e => setMessage(e.target.value)} maxLength={48} placeholder="Primary message..." className="w-full bg-gray-700 text-white text-sm p-2.5 rounded-md border border-gray-600 focus:border-primary-500 focus:ring-primary-500 transition-colors" />
+                 <IconButton
+                   onClick={handleInspireMe}
+                   disabled={isGeneratingMessage}
+                   variant="primary"
+                   size="md"
+                   icon={isGeneratingMessage ? <Spinner /> : <Icon type="sparkles" className="w-5 h-5"/>}
+                   tooltip="Generate inspirational message"
+                />
             </div>
       <div className="text-right text-[11px] text-white/50">{message.length}/48</div>
-            <input type="text" value={ctaText} onChange={e => setCtaText(e.target.value)} placeholder="Optional CTA (e.g., website.com)" className="w-full bg-gray-700 text-white text-sm p-2.5 rounded-md border border-gray-600 focus:border-blue-500 focus:ring-blue-500" />
-             <label htmlFor="logo-upload" className="cursor-pointer flex items-center gap-3 text-sm p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors border border-gray-600">
-                {logoPreview ? <img src={logoPreview} alt="Logo preview" className="w-10 h-10 object-contain rounded-sm bg-white/10 p-1"/> : <div className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-sm"><Icon type="upload" className="w-6 h-6"/></div>}
+            <input type="text" value={ctaText} onChange={e => setCtaText(e.target.value)} placeholder="Optional CTA (e.g., website.com)" className="w-full bg-gray-700 text-white text-sm p-2.5 rounded-md border border-gray-600 focus:border-primary-500 focus:ring-primary-500 transition-colors" />
+             <label htmlFor="logo-upload" className="cursor-pointer flex items-center gap-3 text-sm p-3 bg-gradient-to-r from-gray-700 to-gray-800 rounded-lg hover:from-primary-500/20 hover:to-primary-600/20 transition-all duration-200 border border-gray-600 hover:border-primary-500/50">
+                {logoPreview ? <img src={logoPreview} alt="Logo preview" className="w-10 h-10 object-contain rounded-sm bg-white/10 p-1"/> : <div className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-sm"><Icon type="upload" className="w-6 h-6 text-primary-400"/></div>}
                 <span className="text-gray-200">{logoPreview ? 'Change Dealership Logo' : 'Upload Dealership Logo'}</span>
             </label>
             <input id="logo-upload" type="file" accept="image/png, image/jpeg" onChange={handleLogoChange} className="hidden" />
@@ -227,7 +233,7 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                     <h5 className="text-xs text-white/60 mb-1.5">Aspect Ratio</h5>
                     <div className="flex flex-col gap-1.5">
                         {(['original', '1:1', '9:16', '1.91:1'] as AspectRatio[]).map(ratio => (
-                            <button key={ratio} onClick={() => setAspectRatio(ratio)} className={`py-1.5 text-sm rounded-md transition-all duration-200 ${aspectRatio === ratio ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{ratio}</button>
+                            <button key={ratio} onClick={() => setAspectRatio(ratio)} className={`py-1.5 text-sm rounded-md transition-all duration-200 ${aspectRatio === ratio ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md' : 'bg-gray-700 hover:bg-gray-600'}`}>{ratio}</button>
                         ))}
                     </div>
                 </div>
@@ -235,9 +241,9 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                     <h5 className="text-xs text-white/60 mb-1.5">Logo Position</h5>
                      <div className="grid grid-cols-2 gap-1.5">
                         {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as LogoPosition[]).map(pos => (
-                             <button key={pos} onClick={() => setLogoPosition(pos)} className={`py-2 text-xs rounded-md transition-all duration-200 ${logoPosition === pos ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{pos.split('-').map(p => p.charAt(0).toUpperCase()).join('')}</button>
+                             <button key={pos} onClick={() => setLogoPosition(pos)} className={`py-2 text-xs rounded-md transition-all duration-200 ${logoPosition === pos ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md' : 'bg-gray-700 hover:bg-gray-600'}`}>{pos.split('-').map(p => p.charAt(0).toUpperCase()).join('')}</button>
                         ))}
-                         <button onClick={() => setLogoPosition('center')} className={`py-2 text-xs rounded-md transition-all duration-200 col-span-2 ${logoPosition === 'center' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Center</button>
+                         <button onClick={() => setLogoPosition('center')} className={`py-2 text-xs rounded-md transition-all duration-200 col-span-2 ${logoPosition === 'center' ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md' : 'bg-gray-700 hover:bg-gray-600'}`}>Center</button>
                     </div>
                 </div>
             </div>
@@ -337,21 +343,15 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
 
         <ControlGroup title="Quick Presets">
           <div className="space-y-3">
-            <button
-              type="button"
+            <PremiumButton
+              variant={showPresets ? "primary" : "secondary"}
+              size="sm"
+              icon={<Icon type="sparkles" className="w-4 h-4" />}
               onClick={() => setShowPresets(!showPresets)}
-              className="w-full p-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-md transition-colors flex items-center justify-between"
+              fullWidth
             >
-              <span className="flex items-center gap-2">
-                <Icon type="sparkles" className="w-4 h-4" />
-                {presets.presets.length > 0 ? `Load Preset (${presets.presets.length})` : 'No Presets Yet'}
-              </span>
-              <Icon
-                type={showPresets ? 'chevronUp' : 'chevronDown'}
-                className="w-4 h-4 transition-transform"
-                style={{ transform: showPresets ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              />
-            </button>
+              {presets.presets.length > 0 ? `Load Preset (${presets.presets.length})` : 'No Presets Yet'}
+            </PremiumButton>
 
             {showPresets && presets.presets.length > 0 && (
               <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-gray-800/30 rounded-md border border-gray-700">
@@ -390,14 +390,15 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
               </div>
             )}
 
-            <button
-              type="button"
+            <PremiumButton
+              variant="success"
+              size="sm"
+              icon={<Icon type="save" className="w-4 h-4" />}
               onClick={() => setShowSavePresetDialog(!showSavePresetDialog)}
-              className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+              fullWidth
             >
-              <Icon type="save" className="w-4 h-4" />
               Save Current as Preset
-            </button>
+            </PremiumButton>
 
             {showSavePresetDialog && (
               <div className="space-y-2 p-3 bg-gray-800/50 rounded-md border border-blue-500/30">
@@ -411,24 +412,26 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
                   onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
                 />
                 <div className="flex gap-2">
-                  <button
-                    type="button"
+                  <PremiumButton
+                    variant="success"
+                    size="sm"
                     onClick={handleSavePreset}
                     disabled={!presetName.trim()}
-                    className="flex-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
+                    className="flex-1"
                   >
                     Save
-                  </button>
-                  <button
-                    type="button"
+                  </PremiumButton>
+                  <PremiumButton
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                       setShowSavePresetDialog(false);
                       setPresetName('');
                     }}
-                    className="flex-1 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                    className="flex-1"
                   >
                     Cancel
-                  </button>
+                  </PremiumButton>
                 </div>
               </div>
             )}
@@ -453,10 +456,16 @@ const EditView: React.FC<EditViewProps> = ({ imageSrc, onEnhance }) => {
           </button>
         </ControlGroup>
 
-        <div className="mt-auto pt-4">
-            <Button onClick={handleEnhanceClick} variant="primary" icon={<Icon type="sparkles" />} className="w-full text-lg py-3.5">
-              Enhance with AI
-            </Button>
+        <div className="mt-auto pt-4 space-y-2">
+            <PremiumButton
+              variant="primary"
+              size="lg"
+              icon={<Icon type="sparkles" className="w-5 h-5" />}
+              onClick={handleEnhanceClick}
+              fullWidth
+            >
+              ✨ Enhance with AI
+            </PremiumButton>
         </div>
       </div>
     </div>

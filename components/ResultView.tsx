@@ -1,5 +1,5 @@
 import React, { useCallback, useState, lazy } from 'react';
-import Button from './common/Button';
+import { PremiumButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 import BeforeAfterSlider from './BeforeAfterSlider';
 import { useToast } from './common/ToastContainer';
@@ -31,18 +31,37 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
     trackFeature('edit_caption', { location: 'result_view' });
   }, [updateCaption, showToast, trackFeature]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     try {
-      const link = document.createElement('a');
-      link.href = imageSrc;
-      link.download = `enhanced-photo-${new Date().toISOString().slice(0, 10)}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast('Image downloaded successfully!', 'success');
+      // Check if we're on a mobile device
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+      if (isIOS && 'files' in navigator && navigator.files) {
+        // iOS Web API for saving to camera roll
+        try {
+          const response = await fetch(imageSrc);
+          const blob = await response.blob();
+          const file = new File([blob], `enhanced-photo-${new Date().toISOString().slice(0, 10)}.jpg`, { type: 'image/jpeg' });
+
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          showToast('Image saved to camera roll!', 'success');
+        } catch (e) {
+          throw e;
+        }
+      } else {
+        // Desktop download
+        const link = document.createElement('a');
+        link.href = imageSrc;
+        link.download = `enhanced-photo-${new Date().toISOString().slice(0, 10)}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Image downloaded successfully!', 'success');
+      }
     } catch (error) {
-      showToast('Failed to download image', 'error');
-      console.error('Download error:', error);
+      showToast('Failed to save image', 'error');
+      console.error('Save error:', error);
     }
   }, [imageSrc, showToast]);
 
@@ -93,7 +112,7 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
             className="mb-2"
           />
           <div className="flex gap-2">
-            <Button
+            <PremiumButton
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(autoCaption);
@@ -104,43 +123,44 @@ const ResultView: React.FC<ResultViewProps> = ({ imageSrc, originalImage, onStar
                 }
               }}
               variant="secondary"
-              size="xs"
+              size="sm"
+              icon={<Icon type="copy" className="w-3 h-3" />}
             >
-              Copy Caption
-            </Button>
+              Copy
+            </PremiumButton>
             {'share' in navigator && (
-              <Button onClick={handleQuickShare} variant="primary" size="xs" disabled={isQuickSharing}>
+              <PremiumButton onClick={handleQuickShare} variant="primary" size="sm" disabled={isQuickSharing} icon={<span>✨</span>}>
                 {isQuickSharing ? 'Sharing…' : 'Quick Share'}
-              </Button>
+              </PremiumButton>
             )}
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex flex-col sm:flex-row justify-center items-center gap-4">
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-md flex flex-col sm:flex-row justify-center items-center gap-4">
         {originalImage && (
-          <Button
+          <PremiumButton
             onClick={() => setShowComparison(!showComparison)}
             variant={showComparison ? 'primary' : 'secondary'}
-            icon={<Icon type="compare" />}
+            icon={<Icon type="compare" className="w-4 h-4" />}
+            size="md"
             className="w-full sm:w-auto"
-            title="Toggle before/after comparison"
           >
-            {showComparison ? 'Hide' : 'Compare'}
-          </Button>
+            {showComparison ? '✓ Compare' : 'Compare'}
+          </PremiumButton>
         )}
-        <Button onClick={onStartOver} variant="secondary" icon={<Icon type="retry" />} className="w-full sm:w-auto">
+        <PremiumButton onClick={onStartOver} variant="secondary" size="md" icon={<Icon type="retry" className="w-4 h-4" />} className="w-full sm:w-auto">
           Create New
-        </Button>
-        <Button onClick={onViewGallery} variant="secondary" icon={<Icon type="history" />} className="w-full sm:w-auto">
-          Open Gallery
-        </Button>
-        <Button onClick={handleSave} variant="primary" icon={<Icon type="download" />} className="w-full sm:w-auto">
+        </PremiumButton>
+        <PremiumButton onClick={onViewGallery} variant="secondary" size="md" icon={<Icon type="history" className="w-4 h-4" />} className="w-full sm:w-auto">
+          Gallery
+        </PremiumButton>
+        <PremiumButton onClick={handleSave} variant="primary" size="md" icon={<Icon type="download" className="w-4 h-4" />} className="w-full sm:w-auto">
           Download
-        </Button>
-        <Button onClick={() => setShowExport(true)} variant="primary" icon={<Icon type="share" />} className="w-full sm:w-auto">
+        </PremiumButton>
+        <PremiumButton onClick={() => setShowExport(true)} variant="success" size="md" icon={<Icon type="share" className="w-4 h-4" />} className="w-full sm:w-auto">
           Share
-        </Button>
+        </PremiumButton>
       </div>
 
       <PremiumExportDialog

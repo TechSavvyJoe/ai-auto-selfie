@@ -1,6 +1,8 @@
 import React from 'react';
+import { PremiumButton, IconButton } from './common/PremiumButton';
 import SegmentedControl from './common/SegmentedControl';
 import Slider from './common/Slider';
+import Icon from './common/Icon';
 import { OverlayItem, TextOverlay, StickerOverlay, OverlayPosition } from '../types';
 
 export interface OverlaysPanelProps {
@@ -29,6 +31,13 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
       position: 'bottom',
       scale: 1,
       opacity: 1,
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      textAlign: 'center' as const,
+      shadowBlur: 2,
+      shadowOffsetX: 0,
+      shadowOffsetY: 2,
+      shadowColor: '#000000',
     };
     onChange([...overlays, item]);
     setActiveId(item.id);
@@ -63,30 +72,32 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
       <h3 className="text-sm font-bold text-white/80 border-b border-white/10 pb-2 mb-2">Overlays</h3>
 
       {/* Quick actions */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
+      <div className="flex flex-col gap-3">
+        <PremiumButton
+          variant="primary"
+          size="sm"
+          icon={<span className="text-lg">📝</span>}
           onClick={addText}
-          className="px-3 py-1.5 text-xs rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center gap-2"
-          aria-label="Add text overlay"
-          title="Add text overlay"
+          fullWidth
         >
-          <span className="inline-flex w-4 h-4 items-center justify-center font-bold">T</span>
           Add Text
-        </button>
-        <div className="flex items-center gap-1">
-          {emojiSet.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => addEmoji(e)}
-              className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-lg"
-              aria-label={`Add ${e} sticker`}
-              title={`Add ${e} sticker`}
-            >
-              {e}
-            </button>
-          ))}
+        </PremiumButton>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/60">Quick stickers:</span>
+          <div className="flex items-center gap-1 flex-wrap">
+            {emojiSet.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => addEmoji(e)}
+                className="p-2 rounded-lg bg-gray-700 hover:bg-primary-500/30 transition-all duration-200 text-lg hover:scale-110"
+                aria-label={`Add ${e} sticker`}
+                title={`Add ${e} sticker`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -176,9 +187,9 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
           />
 
           {active.type === 'text' && (
-            <div className="space-y-2">
+            <div className="space-y-3 p-3 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-primary-500/20">
               <div>
-                <div className="text-xs text-white/60 mb-1">Caption</div>
+                <div className="text-xs text-white/60 font-semibold mb-2">✏️ Text Content</div>
                 <input
                   type="text"
                   value={(active as TextOverlay).text}
@@ -187,9 +198,64 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
                   placeholder="Enter caption text"
                   aria-label="Caption text"
                   title="Caption text"
-                  className="w-full px-3 py-2 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 />
               </div>
+
+              {/* Font Size */}
+              <Slider
+                label="Font Size"
+                icon="A"
+                value={(active as TextOverlay).fontSize || 24}
+                onChange={(v) => update(active.id, { fontSize: v })}
+                min={12}
+                max={72}
+                unit="px"
+              />
+
+              {/* Font Weight */}
+              <div>
+                <div className="text-xs text-white/60 font-semibold mb-1.5">Font Weight</div>
+                <div className="flex gap-1">
+                  {['normal', 'bold'].map(weight => (
+                    <button
+                      key={weight}
+                      type="button"
+                      onClick={() => update(active.id, { fontWeight: weight as 'normal' | 'bold' })}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded transition-all ${
+                        (active as TextOverlay).fontWeight === weight
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-700 text-white/70 hover:bg-gray-600'
+                      }`}
+                    >
+                      {weight === 'bold' ? '𝗕' : 'B'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Text Alignment */}
+              <div>
+                <div className="text-xs text-white/60 font-semibold mb-1.5">Alignment</div>
+                <div className="flex gap-1">
+                  {['left', 'center', 'right'].map(align => (
+                    <button
+                      key={align}
+                      type="button"
+                      onClick={() => update(active.id, { textAlign: align as 'left' | 'center' | 'right' })}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded transition-all ${
+                        (active as TextOverlay).textAlign === align
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-700 text-white/70 hover:bg-gray-600'
+                      }`}
+                    >
+                      {align.charAt(0).toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colors */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="text-xs text-white/60 mb-1">Text Color</div>
@@ -199,6 +265,7 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
                     onChange={(e) => update(active.id, { color: e.target.value })}
                     aria-label="Text color"
                     title="Text color"
+                    className="w-full h-8 rounded cursor-pointer"
                   />
                 </div>
                 <div>
@@ -209,9 +276,21 @@ export const OverlaysPanel: React.FC<OverlaysPanelProps> = ({ overlays, onChange
                     onChange={(e) => update(active.id, { bgColor: e.target.value })}
                     aria-label="Background color"
                     title="Background color"
+                    className="w-full h-8 rounded cursor-pointer"
                   />
                 </div>
               </div>
+
+              {/* Text Shadow */}
+              <Slider
+                label="Text Shadow"
+                icon="✨"
+                value={(active as TextOverlay).shadowBlur || 0}
+                onChange={(v) => update(active.id, { shadowBlur: v })}
+                min={0}
+                max={20}
+                unit="px"
+              />
             </div>
           )}
         </div>

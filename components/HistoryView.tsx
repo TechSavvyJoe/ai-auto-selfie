@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Button from './common/Button';
+import { PremiumButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 import { GalleryImage, AIMode } from '../types';
 import { filterGallery } from '../services/storageService';
@@ -172,49 +172,51 @@ const GalleryView: React.FC<GalleryViewProps> = ({ gallery, onSelectImage, onCle
       <div className="flex-shrink-0 mb-4">
         {/* Bulk Selection Toolbar */}
         {selectedImages.size > 0 && (
-          <div className="mb-4 p-3 bg-primary-500/20 border border-primary-500/50 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="mb-4 p-3 bg-gradient-to-r from-primary-500/20 to-primary-600/10 border border-primary-500/50 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 backdrop-blur-sm">
             <div className="text-sm text-white font-semibold">
-              {selectedImages.size} image{selectedImages.size !== 1 ? 's' : ''} selected
+              ✓ {selectedImages.size} image{selectedImages.size !== 1 ? 's' : ''} selected
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Button
+              <PremiumButton
                 onClick={() => setSelectedImages(new Set())}
                 variant="secondary"
-                className="py-1.5 px-3 text-xs"
+                size="sm"
               >
                 Cancel
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleBulkExport}
-                variant="secondary"
-                className="py-1.5 px-3 text-xs"
+                variant="primary"
+                size="sm"
                 icon={<Icon type="download" className="w-3 h-3" />}
               >
                 Export
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleBulkToggleFavorite}
-                variant="secondary"
-                className="py-1.5 px-3 text-xs"
-                icon={<Icon type="heart" className="w-3 h-3" />}
+                variant="warning"
+                size="sm"
+                icon={<span>❤️</span>}
               >
                 Favorite
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleBulkDelete}
                 variant="danger"
-                className="py-1.5 px-3 text-xs"
+                size="sm"
                 icon={<Icon type="trash" className="w-3 h-3" />}
               >
                 Delete
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Gallery</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/80">
+              📸 Gallery
+            </h2>
             <p className="text-xs sm:text-sm text-white/60 mt-1">
               {filteredGallery.length} images
               {selectedMode && ` in ${selectedMode} mode`}
@@ -223,20 +225,25 @@ const GalleryView: React.FC<GalleryViewProps> = ({ gallery, onSelectImage, onCle
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {filteredGallery.length > 0 && (
-              <Button
+              <PremiumButton
                 onClick={toggleAllSelection}
                 variant={selectedImages.size === filteredGallery.length ? "primary" : "secondary"}
-                className="py-2 px-3 text-xs sm:text-sm"
+                size="sm"
                 icon={<Icon type="check" className="w-3 h-3 sm:w-4 sm:h-4" />}
               >
                 <span className="hidden sm:inline">{selectedImages.size === filteredGallery.length ? 'Deselect All' : 'Select All'}</span>
                 <span className="sm:hidden">{selectedImages.size === filteredGallery.length ? 'None' : 'All'}</span>
-              </Button>
+              </PremiumButton>
             )}
-            <Button onClick={handleClearClick} variant="danger" className="py-2 px-3 text-xs sm:text-sm" icon={<Icon type="trash" className="w-3 h-3 sm:w-4 sm:h-4" />}>
+            <PremiumButton
+              onClick={handleClearClick}
+              variant="danger"
+              size="sm"
+              icon={<Icon type="trash" className="w-3 h-3 sm:w-4 sm:h-4" />}
+            >
               <span className="hidden sm:inline">Clear All</span>
               <span className="sm:hidden">Clear</span>
-            </Button>
+            </PremiumButton>
           </div>
         </div>
 

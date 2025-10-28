@@ -6,6 +6,7 @@ import Spinner from './components/common/Spinner';
 import Header from './components/common/Header';
 import Button from './components/common/Button';
 import Icon from './components/common/Icon';
+import ErrorBoundary from './components/ErrorBoundary';
 import { getShortcutsService } from './services/shortcutsService';
 import { getAnalyticsService } from './services/analyticsService';
 import { getTutorialService } from './services/tutorialService';
@@ -34,20 +35,23 @@ interface StartViewProps {
 
 const StartView: React.FC<StartViewProps> = React.memo(({ onStart, onViewGallery }) => (
   <div className="relative flex h-full w-full items-center justify-center overflow-hidden px-6 py-16">
+    <style>{`
+      .float-delayed { animation: float 6s ease-in-out infinite; animation-delay: 2s; }
+      @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(20px); } }
+    `}</style>
     {/* Premium animated background gradients */}
     <div
-      className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-20 blur-3xl animate-float"
-      style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, rgba(236,72,153,0.3) 50%, transparent 100%)' }}
+      className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-20 blur-3xl animate-float bg-gradient-to-r from-purple-600 via-pink-500 to-transparent"
       aria-hidden="true"
     />
     <div
-      className="pointer-events-none absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full opacity-15 blur-3xl animate-float"
-      style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(59,130,246,0.3) 50%, transparent 100%)', animationDelay: '2s' }}
+      className="pointer-events-none absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full opacity-15 blur-3xl float-delayed"
       aria-hidden="true"
-    />
+    >
+      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-600 via-blue-500 to-transparent"></div>
+    </div>
     <div
-      className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl animate-pulse-slow"
-      style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)' }}
+      className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl animate-pulse-slow bg-gradient-to-b from-purple-600 to-transparent"
       aria-hidden="true"
     />
 
@@ -300,25 +304,27 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-950 text-white">
-      <Header appState={appState} onHome={goHome} onBack={goBack} onGallery={viewGallery} />
+    <ErrorBoundary>
+      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-950 text-white">
+        <Header appState={appState} onHome={goHome} onBack={goBack} onGallery={viewGallery} />
 
-      {error && (
-        <div className="absolute left-1/2 top-24 z-30 w-11/12 max-w-xl -translate-x-1/2 rounded-2xl border border-red-400/40 bg-red-500/20 px-6 py-4 text-center shadow-xl backdrop-blur">
-          <div className="flex items-center justify-center gap-3">
-            <Icon type="alert" className="h-6 w-6 text-red-300" />
-            <p className="text-sm font-medium text-red-100">{error}</p>
-            <button
-              type="button"
-              onClick={clearError}
-              className="rounded-full p-1.5 text-red-200 transition hover:bg-red-200/20"
-              aria-label="Dismiss error"
-            >
-              <Icon type="close" className="h-4 w-4" />
-            </button>
+        {error && (
+          <div className="absolute left-1/2 top-24 z-30 w-11/12 max-w-xl -translate-x-1/2 rounded-2xl border border-red-400/40 bg-red-500/20 px-6 py-4 text-center shadow-xl backdrop-blur-md animate-in slide-in-from-top duration-300">
+            <div className="flex items-center justify-center gap-3">
+              <Icon type="alert" className="h-6 w-6 text-red-300" />
+              <p className="text-sm font-medium text-red-100">{error}</p>
+              <button
+                type="button"
+                onClick={clearError}
+                className="rounded-full p-1.5 text-red-200 transition hover:bg-red-200/20 active:scale-90"
+                aria-label="Dismiss error"
+                title="Dismiss error message"
+              >
+                <Icon type="close" className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {isLoading && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-neutral-950/90 backdrop-blur">
@@ -354,8 +360,9 @@ const AppContent: React.FC = () => {
         <TutorialOverlay enabled={getTutorialService().shouldShowIntroduction()} />
       </Suspense>
 
-      <Analytics />
-    </div>
+        <Analytics />
+      </div>
+    </ErrorBoundary>
   );
 };
 

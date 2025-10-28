@@ -196,7 +196,13 @@ export interface TextOverlay extends BaseOverlayItem {
   color?: string; // CSS color
   bgColor?: string; // Optional background color (for pill style)
   fontFamily?: string;
-  fontWeight?: 'regular' | 'bold' | 'black';
+  fontWeight?: 'normal' | 'bold' | 'black';
+  fontSize?: number; // in pixels
+  textAlign?: 'left' | 'center' | 'right';
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowColor?: string;
 }
 
 export interface StickerOverlay extends BaseOverlayItem {

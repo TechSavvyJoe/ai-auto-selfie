@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import Button from './common/Button';
+import { PremiumButton, IconButton } from './common/PremiumButton';
 import Icon from './common/Icon';
 
 interface CameraViewProps {
@@ -329,15 +329,15 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
       {/* Top controls */}
       <div className="absolute top-0 left-0 right-0 p-4 flex flex-col gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm">
         {/* Aspect Ratio Selector */}
-        <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg">
+        <div className="flex gap-2 glass rounded-xl p-2 w-fit shadow-lg bg-white/5 backdrop-blur-md border border-white/10">
           {(['1:1', '4:3', '16:9', '9:16'] as const).map((ratio) => (
             <button
               key={ratio}
               onClick={() => setAspectRatio(ratio)}
               className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
                 aspectRatio === ratio
-                  ? 'bg-white/30 text-white shadow-md scale-105'
-                  : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
+                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105 shadow-primary-500/30'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
               }`}
               title={`Aspect ratio ${ratio}`}
             >
@@ -347,46 +347,47 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <button
+          <PremiumButton
+            variant={showAdvancedSettings ? "primary" : "secondary"}
+            size="sm"
+            icon={<span className="text-lg">⚙️</span>}
             onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-            className="px-3 py-2 text-sm font-semibold glass rounded-xl text-white transition-all duration-200 hover:bg-white/15 active:scale-95 shadow-md"
-            aria-label="Toggle advanced settings"
-            title="Advanced camera settings"
+            className="text-sm"
           >
-            ⚙️ Settings
-          </button>
+            Settings
+          </PremiumButton>
 
           <div className="flex items-center justify-end gap-2">
-            <button
+            <IconButton
+              icon={<Icon type="grid" className="w-5 h-5" />}
+              variant={showGrid ? "primary" : "secondary"}
+              size="md"
+              tooltip="Toggle grid overlay"
               onClick={() => setShowGrid((s) => !s)}
-              className={`p-2.5 rounded-xl transition-all duration-200 active:scale-95 shadow-md ${
-                showGrid ? 'glass bg-white/20' : 'glass hover:bg-white/15'
-              }`}
-              aria-label="Toggle grid"
-            >
-              <Icon type="grid" className="w-5 h-5 text-white" />
-            </button>
-            <button
+            />
+            <IconButton
+              icon={<Icon type="timer" className="w-5 h-5" />}
+              variant={timerEnabled ? "primary" : "secondary"}
+              size="md"
+              tooltip="3s countdown timer"
               onClick={() => setTimerEnabled((t) => !t)}
-              className={`p-2.5 rounded-xl transition-all duration-200 active:scale-95 shadow-md ${
-                timerEnabled ? 'glass bg-white/20' : 'glass hover:bg-white/15'
-              }`}
-              aria-label="Toggle timer"
-              title="3s timer"
-            >
-              <Icon type="timer" className="w-5 h-5 text-white" />
-            </button>
+            />
           </div>
         </div>
 
         {/* Advanced Settings Panel */}
         {showAdvancedSettings && (
-          <div className="glass rounded-xl p-4 shadow-xl space-y-4 animate-in slide-in-from-top duration-300">
+          <div className="glass rounded-xl p-4 shadow-xl space-y-4 animate-in slide-in-from-top duration-300 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md">
             {/* Exposure Compensation */}
-            <div>
-              <label className="text-sm text-white font-semibold block mb-2">
-                Exposure: {exposureCompensation > 0 ? '+' : ''}{exposureCompensation}
-              </label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-white/90 font-semibold">
+                  ✨ Exposure
+                </label>
+                <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
+                  {exposureCompensation > 0 ? '+' : ''}{exposureCompensation.toFixed(1)}
+                </span>
+              </div>
               <input
                 type="range"
                 min="-3"
@@ -394,37 +395,37 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
                 step="0.5"
                 value={exposureCompensation}
                 onChange={(e) => setExposureCompensation(parseFloat(e.target.value))}
-                className="w-full h-2 bg-white/20 rounded-full appearance-none cursor-pointer accent-primary-500"
+                className="w-full h-2 bg-gradient-to-r from-gray-700 to-white/30 rounded-full appearance-none cursor-pointer accent-primary-500"
               />
               <div className="text-xs text-white/60 flex justify-between mt-2">
-                <span>Dark</span>
-                <span>Bright</span>
+                <span>🌙 Dark</span>
+                <span>☀️ Bright</span>
               </div>
             </div>
 
             {/* Quick presets */}
-            <div className="grid grid-cols-3 gap-2">
-              <button
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              <PremiumButton
+                variant={exposureCompensation === 0 ? "primary" : "secondary"}
+                size="sm"
                 onClick={() => setExposureCompensation(0)}
-                className="px-3 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 active:scale-95 font-medium"
-                title="Reset exposure"
               >
                 Reset
-              </button>
-              <button
+              </PremiumButton>
+              <PremiumButton
+                variant={exposureCompensation === -1.5 ? "primary" : "secondary"}
+                size="sm"
                 onClick={() => setExposureCompensation(-1.5)}
-                className="px-3 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 active:scale-95 font-medium"
-                title="Darker"
               >
                 Dark
-              </button>
-              <button
+              </PremiumButton>
+              <PremiumButton
+                variant={exposureCompensation === 1.5 ? "primary" : "secondary"}
+                size="sm"
                 onClick={() => setExposureCompensation(1.5)}
-                className="px-3 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 active:scale-95 font-medium"
-                title="Brighter"
               >
                 Bright
-              </button>
+              </PremiumButton>
             </div>
           </div>
         )}
@@ -437,46 +438,51 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent backdrop-blur-sm flex justify-center items-center gap-10">
+      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent backdrop-blur-md flex justify-center items-center gap-6 md:gap-10">
+        {/* Mode Toggle */}
         <div className="w-20 h-16 flex items-center justify-center">
-          <button
+          <PremiumButton
+            variant={isVideoMode ? "danger" : "primary"}
+            size="md"
+            icon={isVideoMode ? <span className="text-lg">🎥</span> : <span className="text-lg">📷</span>}
             onClick={() => setIsVideoMode(!isVideoMode)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 shadow-lg ${
-              isVideoMode
-                ? 'glass bg-red-500/30 text-red-400 border-2 border-red-500/60'
-                : 'glass text-white hover:bg-white/15'
-            }`}
-            aria-label="Toggle video mode"
-            title="Switch to video mode"
+            className="whitespace-nowrap"
           >
-            {isVideoMode ? '🎥 Video' : '📷 Photo'}
-          </button>
+            {isVideoMode ? 'Video' : 'Photo'}
+          </PremiumButton>
         </div>
 
+        {/* Switch Camera Button */}
         <div className="w-20 h-20 flex items-center justify-center">
             {cameras.length > 1 && (
                 <button
                     onClick={handleSwitchCamera}
-                    className="w-14 h-14 glass rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group hover:bg-white/20 shadow-lg"
+                    className="w-16 h-16 rounded-full flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-lg hover:shadow-lg hover:shadow-primary-500/40"
                     aria-label="Switch Camera"
+                    title={`Switch camera (${cameras.length} available)`}
                 >
-                    <Icon type="switchCamera" className="w-7 h-7 text-white group-hover:text-primary-300 transition-colors" />
+                    <Icon type="switchCamera" className="w-7 h-7 text-white group-hover:text-primary-200 transition-colors" />
                 </button>
             )}
         </div>
 
+        {/* Capture/Record Button */}
         {isVideoMode ? (
           <button
             onClick={isRecording ? stopVideoRecording : startVideoRecording}
-            className={`w-24 h-24 rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group shadow-2xl ${
+            className={`w-24 h-24 rounded-full border-4 focus:outline-none focus:ring-4 focus:ring-red-500/50 active:scale-90 transition-all duration-200 group shadow-2xl ${
               isRecording
-                ? 'bg-red-500/40 border-red-500 hover:border-red-400'
-                : 'glass border-white hover:border-primary-400 hover:bg-white/20'
+                ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-500/40'
+                : 'glass border-white hover:border-primary-400 hover:bg-white/20 hover:shadow-lg hover:shadow-primary-500/20'
             }`}
             aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+            title={isRecording ? 'Stop recording (spacebar)' : 'Start recording (spacebar)'}
           >
             {isRecording ? (
-              <div className="w-full h-full rounded-full bg-red-500 scale-50 group-hover:scale-55 transition-transform duration-200 shadow-glow-lg"></div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-3 h-3 bg-white rounded-sm animate-pulse"></div>
+                <div className="w-3 h-3 bg-white rounded-sm animate-pulse recording-pulse-delayed"></div>
+              </div>
             ) : (
               <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-80 transition-transform duration-200 shadow-glow"></div>
             )}
@@ -484,15 +490,22 @@ const CameraView: React.FC<CameraViewProps> = ({ onCapture, onVideoCapture }) =>
         ) : (
           <button
             onClick={handleCapture}
-            className="w-24 h-24 glass rounded-full border-4 border-white hover:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group hover:bg-white/20 shadow-2xl"
+            className="w-24 h-24 rounded-full border-4 border-white focus:outline-none focus:ring-4 focus:ring-primary-500/50 active:scale-90 transition-all duration-200 group bg-gradient-to-br from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 shadow-2xl hover:shadow-lg hover:shadow-primary-500/40"
             aria-label="Take Picture"
+            title="Take photo (spacebar)"
           >
-              <div className="w-full h-full rounded-full bg-white scale-75 group-hover:scale-80 transition-transform duration-200 shadow-glow"></div>
+              <div className="w-full h-full rounded-full bg-white/90 scale-75 group-hover:scale-80 transition-transform duration-200 shadow-lg"></div>
           </button>
         )}
 
         <div className="w-20 h-16" />
       </div>
+
+      <style>{`
+        .recording-pulse-delayed {
+          animation-delay: 100ms;
+        }
+      `}</style>
     </div>
   );
 };

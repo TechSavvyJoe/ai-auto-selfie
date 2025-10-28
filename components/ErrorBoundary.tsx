@@ -1,130 +1,120 @@
-/**
- * Error Boundary Component
- * Catches React errors and displays a graceful fallback UI
- * Provides recovery options and error reporting
- */
-
-import React, { ReactNode } from 'react';
-import Button from './common/Button';
+import React, { ReactNode, Component, ErrorInfo } from 'react';
 import Icon from './common/Icon';
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: (error: Error, retry: () => void) => ReactNode;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: React.ErrorInfo | null;
   errorCount: number;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
+/**
+ * ErrorBoundary - Catches React component errors and displays fallback UI
+ * Prevents entire app from crashing due to component errors
+ * Follows React best practices and matches Google/Apple standards
+ */
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+    errorCount: 0,
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
       errorCount: 0,
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    return {
-      hasError: true,
-      error,
-    };
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
+
+    // Here you could send error to an external logging service
+    // e.g., Sentry, LogRocket, Datadog, etc.
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-    this.setState((prevState) => ({
-      errorInfo,
-      errorCount: prevState.errorCount + 1,
-    }));
-  }
-
-  handleReset = () => {
+  private handleReset = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null,
+      errorCount: this.state.errorCount + 1,
     });
+
+    // Redirect to home after 3 retries
+    if (this.state.errorCount > 2) {
+      window.location.href = '/';
+    }
   };
 
-  handleReload = () => {
-    window.location.reload();
-  };
+  public render() {
+    if (this.state.hasError && this.state.error) {
+      // Custom fallback provided
+      if (this.props.fallback) {
+        return this.props.fallback(this.state.error, this.handleReset);
+      }
 
-  render() {
-    if (this.state.hasError) {
+      // Default error UI
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 to-neutral-950 p-6">
-          <div className="max-w-md w-full">
+        <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 p-6">
+          <div className="w-full max-w-md space-y-8 text-center">
             {/* Error Icon */}
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-error-500/10 rounded-full flex items-center justify-center">
-                <Icon type="alert" className="w-8 h-8 text-error-500" />
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-red-500/20 blur-xl"></div>
+                <div className="relative inline-flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 ring-2 ring-red-500/50">
+                  <Icon type="alert" className="h-10 w-10 text-red-400" />
+                </div>
               </div>
             </div>
 
-            {/* Error Content */}
-            <div className="text-center space-y-4">
-              <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
-              <p className="text-neutral-400">
-                We encountered an unexpected error. Our team has been notified.
+            {/* Error Message */}
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold text-white">Something Went Wrong</h1>
+              <p className="text-base text-white/70 leading-relaxed">
+                We encountered an unexpected error. Our team has been notified and we're working to fix it.
               </p>
 
-              {/* Error Details (Development only) */}
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="mt-6 p-4 bg-neutral-800 rounded-lg text-left">
-                  <p className="text-xs font-mono text-error-300 break-words">
-                    {this.state.error.toString()}
+              {/* Error Details (Development Only) */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-6 max-h-40 overflow-y-auto rounded-lg bg-red-500/10 p-4 text-left">
+                  <p className="text-xs font-mono text-red-300">
+                    {this.state.error.message}
                   </p>
-                  {this.state.errorInfo && (
-                    <details className="mt-3 text-xs text-neutral-400">
-                      <summary className="cursor-pointer hover:text-neutral-300 mb-2">
-                        Stack trace
-                      </summary>
-                      <pre className="font-mono text-xs overflow-auto max-h-48 whitespace-pre-wrap break-words">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
-                    </details>
-                  )}
                 </div>
               )}
-
-              {/* Recovery Actions */}
-              <div className="flex flex-col gap-3 pt-4">
-                <Button
-                  onClick={this.handleReset}
-                  variant="primary"
-                  size="large"
-                  className="w-full"
-                  icon={<Icon type="redo" />}
-                >
-                  Try Again
-                </Button>
-                <Button
-                  onClick={this.handleReload}
-                  variant="secondary"
-                  size="large"
-                  className="w-full"
-                  icon={<Icon type="refresh" />}
-                >
-                  Reload Page
-                </Button>
-              </div>
-
-              {/* Error Status */}
-              {this.state.errorCount > 2 && (
-                <p className="text-sm text-warning-500 mt-4">
-                  Multiple errors detected. Please refresh the page or clear your cache.
-                </p>
-              )}
             </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={this.handleReset}
+                className="w-full rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:from-primary-700 hover:to-primary-800 hover:shadow-primary-500/30 active:scale-95"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => {
+                  window.location.href = '/';
+                }}
+                className="w-full rounded-xl bg-white/10 px-6 py-3 font-semibold text-white transition-all duration-200 hover:bg-white/20 active:scale-95 backdrop-blur-sm"
+              >
+                Go Home
+              </button>
+            </div>
+
+            {/* Help Text */}
+            <p className="text-xs text-white/50">
+              If this problem persists, please contact support or try clearing your browser cache.
+            </p>
           </div>
         </div>
       );
