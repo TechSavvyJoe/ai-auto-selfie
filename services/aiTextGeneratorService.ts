@@ -26,7 +26,16 @@ export interface TextStylePreset {
   fontFamily?: string;
 }
 
+interface CacheEntry {
+  suggestions: TextSuggestion[];
+  timestamp: number;
+}
+
 class AITextGeneratorService {
+  // Simple in-memory cache for text suggestions (1 hour TTL)
+  private suggestionCache: Map<string, CacheEntry> = new Map();
+  private readonly CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
   private textPresets: TextStylePreset[] = [
     {
       name: 'Bold Statement',
@@ -235,6 +244,22 @@ class AITextGeneratorService {
   ];
 
   /**
+   * Generate a cache key from image base64 and AI mode
+   * Uses first 32 characters of base64 + aiMode for efficient caching
+   */
+  private getCacheKey(base64: string, aiMode: string): string {
+    return `${base64.substring(0, 32)}_${aiMode}`;
+  }
+
+  /**
+   * Check if cached entry is still valid (not expired)
+   */
+  private isCacheValid(entry: CacheEntry): boolean {
+    const age = Date.now() - entry.timestamp;
+    return age < this.CACHE_TTL_MS;
+  }
+
+  /**
    * Extract base64 and mimeType from data URL
    * Handles various data URL formats and blob URLs
    */
@@ -285,6 +310,13 @@ class AITextGeneratorService {
       if (!base64) {
         // If no image provided, return default suggestions
         return this.getDefaultSuggestions();
+      }
+
+      // Check cache first to avoid redundant API calls
+      const cacheKey = this.getCacheKey(base64, aiMode);
+      const cachedEntry = this.suggestionCache.get(cacheKey);
+      if (cachedEntry && this.isCacheValid(cachedEntry)) {
+        return cachedEntry.suggestions;
       }
 
       const caption = await generateCaptionFromImage(base64, mimeType);
@@ -349,6 +381,12 @@ class AITextGeneratorService {
           confidence: 0.7,
         });
       }
+
+      // Cache the results before returning (with 1-hour TTL)
+      this.suggestionCache.set(cacheKey, {
+        suggestions,
+        timestamp: Date.now(),
+      });
 
       return suggestions;
     } catch (error) {

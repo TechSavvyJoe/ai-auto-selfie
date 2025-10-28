@@ -226,13 +226,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const generatorTone: 'friendly' | 'professional' | 'fun' | 'luxury' | 'witty' | 'inspirational' | 'motivational' | 'poetic' | 'bold' | 'humble' | 'trendy' =
               tone as any || 'friendly';
             const maxWords = 18; // Keep tight for speed and readability
-            caption = await generateCaptionFromImage(base64Out, 'image/jpeg', {
-              tone: generatorTone,
-              includeHashtags,
-              maxWords,
-              dealershipName,
-              dealershipCity,
+
+            // Use shorter timeout for text-only generation (faster gemini-2.0-flash model)
+            const captionTimeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Caption generation timed out')), 20000); // 20s timeout for text
             });
+
+            caption = await Promise.race([
+              generateCaptionFromImage(base64Out, 'image/jpeg', {
+                tone: generatorTone,
+                includeHashtags,
+                maxWords,
+                dealershipName,
+                dealershipCity,
+              }),
+              captionTimeoutPromise
+            ]);
             setAutoCaption(caption);
           }
         } catch (e) {

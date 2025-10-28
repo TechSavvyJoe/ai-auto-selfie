@@ -208,13 +208,13 @@ export const generateInspirationalMessage = async (theme: Theme): Promise<string
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash', // Faster model for text-only generation
       contents: prompt,
     });
     return response.text.trim().replace(/["']/g, '');
   } catch (error) {
     console.error("Error generating message:", error);
-    return theme === 'luxury' ? 'Excellence Awaits' : 
+    return theme === 'luxury' ? 'Excellence Awaits' :
            theme === 'dynamic' ? 'Adventure Calls' :
            theme === 'family' ? 'Memories Begin' : 'Simply Perfect';
   }
@@ -284,7 +284,7 @@ IMPORTANT RULES:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash', // Faster model for text-only caption generation from images
       contents: {
         parts: [
           { text: prompt },
@@ -339,7 +339,7 @@ hashtag3
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash', // Faster model for hashtag generation
       contents: {
         parts: [
           { text: prompt },
