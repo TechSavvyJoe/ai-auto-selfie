@@ -202,6 +202,106 @@ class AITextGeneratorService {
       category: 'playful',
       fontFamily: '"Comic Sans MS", "Chalkboard SE", cursive',
     },
+    // Premium Canva-style presets
+    {
+      name: 'Gradient Pop',
+      color: '#FFFFFF',
+      bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      fontSize: 52,
+      fontWeight: 'bold',
+      shadowBlur: 15,
+      textAlign: 'center',
+      category: 'professional',
+      fontFamily: '"Arial Black", sans-serif',
+    },
+    {
+      name: 'Social Media Gold',
+      color: '#FFD700',
+      bgColor: 'rgba(0, 0, 0, 0.7)',
+      fontSize: 48,
+      fontWeight: 'bold',
+      shadowBlur: 12,
+      textAlign: 'center',
+      category: 'luxury',
+      fontFamily: 'Impact, fantasy',
+    },
+    {
+      name: 'Modern Vibrant',
+      color: '#FFFFFF',
+      bgColor: 'rgba(255, 71, 87, 0.85)',
+      fontSize: 50,
+      fontWeight: 'bold',
+      shadowBlur: 10,
+      textAlign: 'center',
+      category: 'modern',
+      fontFamily: '"Trebuchet MS", sans-serif',
+    },
+    {
+      name: 'Creative Neon',
+      color: '#00FF88',
+      bgColor: 'rgba(0, 0, 0, 0.8)',
+      fontSize: 48,
+      fontWeight: 'bold',
+      shadowBlur: 20,
+      textAlign: 'center',
+      category: 'creative',
+      fontFamily: '"Arial Black", sans-serif',
+    },
+    {
+      name: 'Elegant White',
+      color: '#FFFFFF',
+      bgColor: 'rgba(0, 0, 0, 0.4)',
+      fontSize: 44,
+      fontWeight: 'bold',
+      shadowBlur: 8,
+      textAlign: 'center',
+      category: 'elegant',
+      fontFamily: 'Georgia, serif',
+    },
+    {
+      name: 'Professional Navy',
+      color: '#FFFFFF',
+      bgColor: 'rgba(26, 35, 126, 0.8)',
+      fontSize: 46,
+      fontWeight: 'bold',
+      shadowBlur: 10,
+      textAlign: 'center',
+      category: 'professional',
+      fontFamily: '"Segoe UI", sans-serif',
+    },
+    {
+      name: 'Vibrant Teal',
+      color: '#FFFFFF',
+      bgColor: 'rgba(0, 184, 212, 0.85)',
+      fontSize: 50,
+      fontWeight: 'bold',
+      shadowBlur: 12,
+      textAlign: 'center',
+      category: 'modern',
+      fontFamily: '"Arial Black", sans-serif',
+    },
+    {
+      name: 'Bold Shadow',
+      color: '#FFFFFF',
+      bgColor: 'rgba(0, 0, 0, 0.6)',
+      fontSize: 54,
+      fontWeight: 'bold',
+      shadowBlur: 16,
+      textAlign: 'center',
+      category: 'professional',
+      fontFamily: 'Impact, fantasy',
+    },
+    {
+      name: 'Playful Rainbow',
+      color: '#FFFFFF',
+      bgColor: 'rgba(255, 107, 107, 0.8)',
+      fontSize: 48,
+      fontWeight: 'bold',
+      shadowBlur: 14,
+      textAlign: 'center',
+      category: 'playful',
+      fontFamily: '"Comic Sans MS", cursive',
+    },
   ];
 
   private motivationalTexts = [
@@ -215,6 +315,16 @@ class AITextGeneratorService {
     'Keep It Real',
     'Make It Happen',
     'Own Your Story',
+    'Level Up Your Game',
+    'Be Fearless',
+    'Your Moment Matters',
+    'Radiate Positivity',
+    'Embrace Your Journey',
+    'Stay Fierce',
+    'You Got This',
+    'Dream Big, Act Bigger',
+    'Create Your Vibe',
+    'Unstoppable Energy',
   ];
 
   private professionalTexts = [
@@ -228,6 +338,16 @@ class AITextGeneratorService {
     'Leadership Moments',
     'Innovation Starts Here',
     'Excellence in Motion',
+    'Making Waves',
+    'Building Something Great',
+    'Precision & Purpose',
+    'Forward Momentum',
+    'Crafted with Purpose',
+    'Your Brand Story',
+    'Setting Trends',
+    'Excellence Every Day',
+    'Strategic Moves',
+    'Peak Performance',
   ];
 
   private creativeTexts = [
@@ -241,6 +361,30 @@ class AITextGeneratorService {
     'Pure Inspiration',
     'Artistic Freedom',
     'Design Your Life',
+    'Colorful Chaos',
+    'Wild & Creative',
+    'Express Boldly',
+    'Artistic Journey',
+    'Create Fearlessly',
+    'Bring Ideas to Life',
+    'Craft Your Story',
+    'Visual Storytelling',
+    'Bold Imagination',
+    'Artistry in Motion',
+  ];
+
+  // Premium social media focused suggestions
+  private socialMediaTexts = [
+    'Double Tap if You Agree',
+    'Tag Someone Who Needs This',
+    'Save This for Later',
+    'Share Your Thoughts',
+    'React in the Comments',
+    'This Is Everything',
+    'Goals AF',
+    'Aesthetic Vibes',
+    'Main Character Energy',
+    'Vibe Check: Passed',
   ];
 
   /**
@@ -334,41 +478,52 @@ class AITextGeneratorService {
         });
       }
 
-      // Add mode-specific suggestions
+      // Add mode-specific suggestions with premium styling
       switch (aiMode) {
         case 'professional':
           suggestions.push(
-            ...this.professionalTexts.slice(0, 3).map((text, idx) => ({
+            ...this.professionalTexts.slice(0, 4).map((text, idx) => ({
               text,
               category: 'professional' as const,
-              style: 'professional' as const,
-              fontSize: 40 - idx * 4,
-              confidence: 0.85 - idx * 0.05,
+              style: idx === 0 ? 'professional' : (idx % 2 === 0 ? 'bold' : 'elegant') as any,
+              fontSize: 44 - idx * 3,
+              confidence: 0.9 - idx * 0.08,
             }))
           );
           break;
         case 'creative':
           suggestions.push(
-            ...this.creativeTexts.slice(0, 3).map((text, idx) => ({
+            ...this.creativeTexts.slice(0, 4).map((text, idx) => ({
               text,
               category: 'creative' as const,
-              style: 'playful' as const,
-              fontSize: 36 - idx * 2,
-              confidence: 0.85 - idx * 0.05,
+              style: idx === 0 ? 'playful' : (idx % 2 === 0 ? 'bold' : 'modern') as any,
+              fontSize: 42 - idx * 2,
+              confidence: 0.9 - idx * 0.08,
             }))
           );
           break;
         default:
           suggestions.push(
-            ...this.motivationalTexts.slice(0, 3).map((text, idx) => ({
+            ...this.motivationalTexts.slice(0, 4).map((text, idx) => ({
               text,
               category: 'motivational' as const,
-              style: 'bold' as const,
-              fontSize: 38 - idx * 3,
-              confidence: 0.8 - idx * 0.05,
+              style: idx === 0 ? 'bold' : (idx % 2 === 0 ? 'modern' : 'elegant') as any,
+              fontSize: 44 - idx * 3,
+              confidence: 0.9 - idx * 0.08,
             }))
           );
       }
+
+      // Add social media engagement suggestions
+      suggestions.push(
+        ...this.socialMediaTexts.slice(0, 2).map((text, idx) => ({
+          text,
+          category: 'cta' as const,
+          style: 'modern' as const,
+          fontSize: 28 + idx * 2,
+          confidence: 0.75 - idx * 0.1,
+        }))
+      );
 
       // Add hashtag suggestion
       const hashtag = this.generateHashtags(caption || 'photo', 1)[0];
@@ -473,7 +628,7 @@ class AITextGeneratorService {
   }
 
   /**
-   * Get default text suggestions
+   * Get default text suggestions (premium Canva-style)
    */
   private getDefaultSuggestions(): TextSuggestion[] {
     return [
@@ -481,22 +636,43 @@ class AITextGeneratorService {
         text: 'Create Your Story',
         category: 'caption',
         style: 'elegant',
-        fontSize: 40,
-        confidence: 0.8,
+        fontSize: 48,
+        confidence: 0.9,
       },
       {
-        text: 'Professional Profile',
+        text: 'Professional Excellence',
         category: 'professional',
         style: 'professional',
-        fontSize: 36,
-        confidence: 0.75,
+        fontSize: 44,
+        confidence: 0.85,
       },
       {
         text: 'Shine Bright',
         category: 'motivational',
         style: 'bold',
-        fontSize: 38,
-        confidence: 0.7,
+        fontSize: 46,
+        confidence: 0.85,
+      },
+      {
+        text: 'Own Your Moment',
+        category: 'motivational',
+        style: 'bold',
+        fontSize: 44,
+        confidence: 0.8,
+      },
+      {
+        text: 'Make Waves',
+        category: 'creative',
+        style: 'playful',
+        fontSize: 42,
+        confidence: 0.8,
+      },
+      {
+        text: 'Main Character Energy',
+        category: 'cta',
+        style: 'modern',
+        fontSize: 36,
+        confidence: 0.75,
       },
     ];
   }

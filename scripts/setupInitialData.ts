@@ -44,6 +44,12 @@ function question(prompt: string): Promise<string> {
   });
 }
 
+// Helper to read environment variables with an optional fallback
+function envOr(key: string, fallback?: string): string | undefined {
+  const v = process.env[key];
+  return v !== undefined && v !== '' ? v : fallback;
+}
+
 async function main() {
   console.log('\n🚀 AI Auto Selfie - Initial Setup\n');
   console.log('This script will set up:');
@@ -52,35 +58,85 @@ async function main() {
   console.log('3. Default user for the dealership\n');
 
   try {
-    // Collect user input
-    const adminEmail = await question('Admin email: ');
-    const adminPassword = await question('Admin password (min 6 chars): ');
+    // Support non-interactive mode via environment variables.
+    // If ADMIN_EMAIL is set we'll run without prompting.
+    const adminEmailEnv = envOr('ADMIN_EMAIL');
+    const adminPasswordEnv = envOr('ADMIN_PASSWORD');
+    const adminFullNameEnv = envOr('ADMIN_FULL_NAME');
 
-    if (adminPassword.length < 6) {
-      console.error('Error: Password must be at least 6 characters');
+    const defaultUserEmailEnv = envOr('DEFAULT_EMAIL');
+    const defaultUserPasswordEnv = envOr('DEFAULT_PASSWORD');
+    const defaultUserFullNameEnv = envOr('DEFAULT_FULL_NAME');
+    const defaultUserPhoneEnv = envOr('DEFAULT_PHONE');
+
+    const dealershipPhoneEnv = envOr('DEALERSHIP_PHONE');
+    const dealershipEmailEnv = envOr('DEALERSHIP_EMAIL');
+    const dealershipAddressEnv = envOr('DEALERSHIP_ADDRESS');
+
+    let adminEmail: string;
+    let adminPassword: string;
+    let adminFullName: string;
+    let defaultUserEmail: string;
+    let defaultUserPassword: string;
+    let defaultUserFullName: string;
+    let defaultUserPhone: string | null;
+    let dealershipPhone: string | null;
+    let dealershipEmail: string | null;
+    let dealershipAddress: string | null;
+
+    if (adminEmailEnv && adminPasswordEnv && defaultUserEmailEnv && defaultUserPasswordEnv) {
+      // Non-interactive path
+      adminEmail = adminEmailEnv;
+      adminPassword = adminPasswordEnv;
+      adminFullName = adminFullNameEnv || 'Admin User';
+
+      defaultUserEmail = defaultUserEmailEnv;
+      defaultUserPassword = defaultUserPasswordEnv;
+      defaultUserFullName = defaultUserFullNameEnv || 'Default User';
+      defaultUserPhone = defaultUserPhoneEnv || null;
+
+      dealershipPhone = dealershipPhoneEnv || null;
+      dealershipEmail = dealershipEmailEnv || null;
+      dealershipAddress = dealershipAddressEnv || null;
+
+      console.log('Running setup in non-interactive mode using environment variables');
+    } else {
+      // Interactive path
+      // Collect user input
+      adminEmail = await question('Admin email: ');
+      adminPassword = await question('Admin password (min 6 chars): ');
+
+      if (adminPassword.length < 6) {
+        console.error('Error: Password must be at least 6 characters');
+        rl.close();
+        process.exit(1);
+      }
+
+      adminFullName = await question('Admin full name (e.g., "John Administrator"): ');
+
+      defaultUserEmail = await question('\nDefault user email: ');
+      defaultUserPassword = await question('Default user password (min 6 chars): ');
+
+      if (defaultUserPassword.length < 6) {
+        console.error('Error: Password must be at least 6 characters');
+        rl.close();
+        process.exit(1);
+      }
+
+      defaultUserFullName = await question('Default user full name (e.g., "Jane Salesperson"): ');
+      const defaultPhoneAnswer = await question('Default user phone (optional): ');
+      defaultUserPhone = defaultPhoneAnswer || null;
+
+      const phoneAns = await question('\nDealership phone (optional): ');
+      const emailAns = await question('Dealership email (optional): ');
+      const addrAns = await question('Dealership address (optional): ');
+
+      dealershipPhone = phoneAns || null;
+      dealershipEmail = emailAns || null;
+      dealershipAddress = addrAns || null;
+
       rl.close();
-      process.exit(1);
     }
-
-    const adminFullName = await question('Admin full name (e.g., "John Administrator"): ');
-
-    const defaultUserEmail = await question('\nDefault user email: ');
-    const defaultUserPassword = await question('Default user password (min 6 chars): ');
-
-    if (defaultUserPassword.length < 6) {
-      console.error('Error: Password must be at least 6 characters');
-      rl.close();
-      process.exit(1);
-    }
-
-    const defaultUserFullName = await question('Default user full name (e.g., "Jane Salesperson"): ');
-    const defaultUserPhone = await question('Default user phone (optional): ');
-
-    const dealershipPhone = await question('\nDealership phone (optional): ');
-    const dealershipEmail = await question('Dealership email (optional): ');
-    const dealershipAddress = await question('Dealership address (optional): ');
-
-    rl.close();
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
