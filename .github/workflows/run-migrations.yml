@@ -1,0 +1,67 @@
+name: Run migrations
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run-migrations:
+    name: Run SQL migrations
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is not set. Exiting." >&2
+            exit 1
+          fi
+          echo "Running migrations from scripts/migrations"
+          for f in scripts/migrations/*.sql; do
+            echo "--- Running $f ---"
+            psql "$DATABASE_URL" -f "$f"
+          done
+name: Run DB Migrations
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  migrate:
+    name: Run idempotent SQL migrations
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is not set. Set the secret in GitHub Actions."
+            exit 1
+          fi
+          for f in scripts/migrations/*.sql; do
+            echo "Running migration: $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
